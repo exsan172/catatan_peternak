@@ -1,0 +1,113 @@
+.cow-title-row{align-items:center;gap:12px}.cow-summary{flex:1}
+.record-form{display:flex;flex-direction:column;gap:11px;margin:0 0 15px;padding:15px;background:#fff;border:1px solid #e2e8f2;border-radius:14px}
+.record-form label{display:flex;flex-direction:column;gap:6px;color:#52617a;font-size:10px;font-weight:700}
+.record-form input,.record-form select{width:100%;min-width:0;height:39px;padding:0 10px;border:1px solid #dfe6f0;border-radius:9px;background:#fbfcfe;color:#263449;font:500 11px 'Inter',sans-serif;outline:none}
+.record-form input:focus,.record-form select:focus,.status-select:focus{border-color:#7192d0;box-shadow:0 0 0 2px #edf3ff}
+.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.form-submit{height:39px;border:0;border-radius:9px;background:#3468c5;color:white;font:700 11px 'Inter',sans-serif;cursor:pointer}
+.status-select{max-width:88px;border:1px solid #e2e8f2;border-radius:8px;background:#fff;color:#52617a;padding:6px 5px;font:600 9px 'Inter',sans-serif;outline:none}
+.delete-record{width:25px;height:25px;flex:none;border:0;border-radius:8px;background:#f2f5fa;color:#8996a9;font-size:17px;line-height:1;cursor:pointer}
+.delete-record:hover{background:#fff0ed;color:#bb6b5c}
+.empty-record{padding:15px;border-radius:11px;background:#fff;color:#8492a7;text-align:center;font-size:11px}
+.expense-filters{display:flex;gap:7px;overflow-x:auto;padding:1px 0 5px;margin:0 0 13px;scrollbar-width:none}
+.expense-filters::-webkit-scrollbar{display:none}
+.expense-filters button{flex:none;border:1px solid #e1e8f2;background:#fff;color:#71809a;padding:8px 11px;border-radius:999px;font:600 10px 'Inter',sans-serif;cursor:pointer}
+.expense-filters button.chosen{border-color:#3468c5;background:#3468c5;color:#fff}
+.custom-range{display:flex;align-items:end;gap:10px;margin:0 0 13px;padding:12px;background:#fff;border:1px solid #e2e8f2;border-radius:12px;color:#8794a7;font-size:10px}
+.custom-range label{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;color:#52617a;font-weight:700}
+.custom-range input{width:100%;height:38px;min-width:0;border:1px solid #dfe6f0;border-radius:9px;background:#fbfcfe;padding:0 8px;color:#263449;font:500 10px 'Inter',sans-serif}
+.expense-total>p{margin-bottom:0}
+.expense-total .eyebrow{display:block;margin-bottom:8px}
+.expense-total>strong{display:block}
+.disease-summary{display:flex;align-items:center;gap:12px;margin-bottom:22px;padding:16px;background:#e7efff;border-radius:15px}
+.disease-summary-icon{width:42px;height:42px;flex:none;display:grid;place-items:center;background:#d6e4ff;color:#3468c5;border-radius:12px}
+.disease-summary>div{flex:1;display:flex;flex-direction:column;gap:3px}
+.disease-summary>div strong{font:700 24px 'Inter',sans-serif;color:#24457c}
+.disease-summary>div span{font-size:12px;color:#647b9e}
+.disease-list-section{margin-top:23px}
+.disease-list{display:flex;flex-direction:column;gap:11px}
+.disease-card{display:flex;align-items:flex-start;gap:12px;padding:15px;background:#fff;border:1px solid #e4eaf3;border-radius:14px}
+.disease-card-icon{width:38px;height:38px;flex:none;border-radius:11px;display:grid;place-items:center;background:#fff0e9;color:#bd7254}
+.disease-card-content{flex:1;min-width:0}
+.disease-card-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.disease-card-heading h3{margin:0 0 4px;color:#263449;font-size:15px}
+.disease-card-heading p,.disease-detail{margin:0;color:#71809a;font-size:12px;line-height:1.5}
+.disease-status{flex:none;padding:5px 8px;border-radius:999px;background:#fff2e9;color:#aa704c;font-size:10px;font-weight:700}
+.disease-status.recovered{background:#e5f3ec;color:#438363}
+.disease-detail{margin-top:9px;overflow-wrap:anywhere}
+.disease-detail strong{color:#52617a}
+.disease-actions{display:flex;justify-content:space-between;align-items:center;margin-top:12px}
+.disease-actions select{min-height:36px;padding:5px 9px;border:1px solid #e1e8f2;border-radius:8px;background:#fff;color:#52617a;font:600 11px 'Inter',sans-serif}
+.disease-actions .delete-record{width:auto;padding:0 10px;font-size:11px}
+.disease-form textarea{width:100%;resize:vertical;min-height:74px;padding:10px;border:1px solid #dfe6f0;border-radius:9px;background:#fbfcfe;color:#263449;font:500 14px/1.4 'Inter',sans-serif;outline:none}
+.disease-form textarea:focus{border-color:#7192d0;box-shadow:0 0 0 2px #edf3ff}
+.optional-label{display:inline;color:#8996a9;font-size:inherit;font-weight:500}
+.cow-birth{margin-top:3px!important;color:#526b91!important}
+.backup-card{margin-top:14px;padding:16px;background:#fff;border:1px solid #e2e8f2;border-radius:14px}
+.backup-copy strong{color:#31435e;font-size:14px}
+.backup-copy p{margin:5px 0 13px;color:#77869b;font-size:12px;line-height:1.5}
+.backup-actions{display:flex;flex-wrap:wrap;gap:9px}
+.backup-actions button{display:flex;align-items:center;justify-content:center;gap:7px;min-height:42px;padding:0 13px;border:1px solid #3468c5;border-radius:10px;background:#3468c5;color:#fff;font:700 12px 'Inter',sans-serif;cursor:pointer}
+.backup-actions button.secondary{background:#fff;color:#3468c5}
+.backup-message{margin:11px 0 0;color:#4d6a91;font-size:12px}
+.brand-farm-name{display:block;max-width:min(55vw,420px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:16px;letter-spacing:-.25px}
+.expense-heading-actions{display:flex;align-items:center;gap:8px}
+.import-trigger{display:flex;align-items:center;gap:5px;min-height:34px;padding:0 9px;border:1px solid #dce5f3;border-radius:10px;background:#fff;color:#3468c5;font:700 11px 'Inter',sans-serif;cursor:pointer}
+.expense-import-format{margin:-4px 0 14px;color:#52617a;font-size:12px}
+.expense-import-format summary{cursor:pointer;font-weight:700;color:#3468c5}
+.expense-import-format p{margin:8px 0;color:#77869b;font-size:11px;line-height:1.5}
+.expense-import-format pre{overflow:auto;margin:0;padding:12px;border-radius:10px;background:#f3f6fb;color:#31435e;font:12px/1.7 ui-monospace,SFMono-Regular,monospace}
+.sample-download{display:flex;align-items:center;gap:5px;margin-top:8px;padding:0;border:0;background:transparent;color:#3468c5;font-size:11px;font-weight:700;cursor:pointer}
+.expense-search{display:block;margin:10px 0 12px}
+.expense-search input{width:100%;height:42px;padding:0 12px;border:1px solid #dfe6f0;border-radius:10px;background:#fff;color:#31435e;font:500 13px 'Inter',sans-serif;outline:none}
+.expense-search input:focus{border-color:#7192d0;box-shadow:0 0 0 2px #edf3ff}
+.expense-search input::placeholder{color:#98a5b8}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.modal-backdrop{position:fixed;inset:0;z-index:30;display:grid;place-items:center;padding:20px;background:rgba(24,38,61,.48);backdrop-filter:blur(3px)}
+.confirm-modal{width:min(100%,390px);padding:24px;border:1px solid #e4eaf3;border-radius:20px;background:#fff;box-shadow:0 24px 70px rgba(20,39,74,.24);animation:modal-enter .16s ease-out}
+.confirm-modal-icon{width:46px;height:46px;display:grid;place-items:center;border-radius:14px;background:#e8efff;color:#3468c5}
+.confirm-modal h2{margin:16px 0 7px;color:#24324a;font:700 20px 'Inter',sans-serif;letter-spacing:-.4px}
+.confirm-modal>p{margin:0;color:#71809a;font-size:14px;line-height:1.55}
+.confirm-modal-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:23px}
+.confirm-modal-actions button{min-height:43px;padding:0 15px;border:1px solid #dfe6f0;border-radius:10px;font:700 13px 'Inter',sans-serif;cursor:pointer}
+.confirm-cancel{background:#fff;color:#52617a}
+.confirm-accept{border-color:#3468c5!important;background:#3468c5;color:#fff}
+.confirm-accept.danger{border-color:#c84f5c!important;background:#c84f5c}
+@keyframes modal-enter{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+.visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.calendar-back{margin:0 0 14px;padding:8px 0;border:0;background:none;color:#3468c5;font:700 13px 'Inter',sans-serif;cursor:pointer}
+.repro-profile{display:flex;align-items:center;gap:12px;padding:15px;background:#fff;border:1px solid #e2e8f2;border-radius:14px;margin-bottom:14px}
+.repro-profile .cow-avatar{width:48px;height:48px}
+.repro-profile h2{margin:0 0 4px;color:#263449;font:700 17px 'Inter',sans-serif}
+.repro-profile p{margin:0;color:#77869b;font-size:12px}
+.repro-recommendations{display:flex;flex-direction:column;gap:9px;margin-bottom:15px}
+.recommendation-card{display:flex;align-items:flex-start;gap:10px;padding:12px;background:#fff;border:1px solid #e2e8f2;border-radius:12px}
+.recommendation-icon{width:34px;height:34px;flex:none;border-radius:10px;display:grid;place-items:center;background:#edf3ff;color:#3468c5}
+.recommendation-card strong{display:block;margin:1px 0 4px;color:#33445e;font-size:13px}
+.recommendation-card p{margin:0;color:#71809a;font-size:12px;line-height:1.45}
+.recommendation-card.heat .recommendation-icon{background:#fff0e9;color:#bd7254}
+.recommendation-card.deworm .recommendation-icon{background:#e5f3ec;color:#438363}
+.recommendation-note,.deworming-note{margin:0;padding:11px;border-radius:10px;background:#edf3ff;color:#526b91;font-size:12px;line-height:1.5}
+.deworming-note{background:#f1f5f0;color:#667b68}
+.repro-form>.eyebrow{margin:0 0 2px}
+.repro-guidance{margin-bottom:14px;padding:14px;background:#e7efff;border-radius:13px}
+.repro-guidance strong{color:#334f7c;font-size:14px}
+.repro-guidance p{margin:5px 0 0;color:#60789e;font-size:12px;line-height:1.5}
+.calendar-cow-list{display:flex;flex-direction:column;gap:9px}
+.calendar-cow-card{width:100%;display:flex;align-items:center;gap:11px;padding:13px;border:1px solid #e2e8f2;border-radius:13px;background:#fff;text-align:left;cursor:pointer}
+.calendar-cow-card>svg{flex:none;color:#8c9ab0}
+.calendar-cow-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.calendar-cow-info strong{color:#263449;font-size:14px}
+.calendar-cow-info small{color:#71809a;font-size:11px;line-height:1.35}
+.cow-name-link{padding:0;border:0;background:none;color:#263449;font:700 15px 'Inter',sans-serif;text-align:left;cursor:pointer}
+.bottom-nav{gap:4px}
+.bottom-nav button{width:100px}
+.schedule-open{width:30px;height:30px;flex:none;display:grid;place-items:center;border:0;border-radius:8px;background:#edf3ff;color:#3468c5;cursor:pointer}
+@media(max-width:560px){
+  .bottom-nav{gap:1px;padding-left:4px;padding-right:4px}
+  .bottom-nav button{min-width:0;padding:0 2px;font-size:9px;word-break:break-word;line-height:1.05}
+  .calendar-cow-card{padding:12px 9px;gap:8px}
+  .calendar-cow-info strong{font-size:13px}
+  .calendar-cow-info small{font-size:10px}
+  .repro-profile p{font-size:11px}
+}

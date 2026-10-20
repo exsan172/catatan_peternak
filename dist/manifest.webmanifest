@@ -1,0 +1,19 @@
+{
+  "name": "Catatan Peternak",
+  "short_name": "Peternak",
+  "description": "Catatan sapi, pengeluaran, jadwal, dan kesehatan ternak.",
+  "lang": "id-ID",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f3f6fb",
+  "theme_color": "#3468c5",
+  "icons": [
+    {
+      "src": "/icons/ranch.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

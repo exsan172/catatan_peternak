@@ -1,0 +1,88 @@
+/* Larger type and touch targets for easier reading */
+body{font-size:16px}
+.stats-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+.stat-card{display:flex;flex-direction:column;align-items:flex-start}
+.stat-top{justify-content:flex-start}
+.stat-note{display:none}
+.stat-card:first-child{grid-column:1/-1;display:grid;grid-template-columns:48px 1fr;grid-template-rows:auto auto;align-items:center;justify-content:stretch;column-gap:13px;min-height:88px;padding:16px;text-align:left}
+.stat-card:first-child .stat-top{display:contents}
+.stat-card:first-child .stat-icon{grid-column:1;grid-row:1/3;width:44px;height:44px}
+.stat-card:first-child .stat-value{grid-column:2;grid-row:1;justify-self:stretch;margin:0;text-align:right;font-size:30px}
+.stat-card:first-child .stat-label{grid-column:2;grid-row:2;justify-self:stretch;margin:2px 0 0;text-align:right;font-size:14px;font-weight:700;color:#52617a}
+.eyebrow,.setup-eyebrow{font-size:12px;letter-spacing:1.1px}
+.welcome-row h1{font-size:27px}
+.subheading{font-size:15px}
+.hero-kicker{font-size:11px}
+.hero-copy h2{font-size:29px}
+.hero-copy p,.hero-link{font-size:14px}
+.section-heading h2{font-size:20px}
+.text-link{font-size:13px}
+.stat-note{font-size:11px}
+.stat-value{font-size:28px}
+.stat-value span{font-size:12px}
+.stat-label{font-size:14px}
+.schedule-kind{font-size:11px}
+.schedule-info h3{font-size:14px}
+.schedule-info p,.schedule-time strong,.schedule-time span{font-size:12px}
+.all-schedules{font-size:13px}
+.tip-banner strong{font-size:13px}
+.tip-banner p{font-size:12px}
+.bottom-nav button{height:54px;font-size:12px}
+.page-heading h1{font-size:30px}
+.cow-summary strong{font-size:30px}
+.cow-summary small{font-size:14px}
+.filter-pill{font-size:13px;padding:9px 13px}
+.cow-info h3,.expense-info h3{font-size:15px}
+.cow-info p,.expense-info p{font-size:13px}
+.status-pill{font-size:12px;padding:6px 10px}
+.expense-total>strong{font-size:30px}
+.expense-total>p{font-size:13px}
+.expense-card>strong{font-size:13px}
+.setup-card h1{font-size:32px}
+.setup-description{font-size:15px}
+.setup-form label{font-size:13px}
+.setup-form input{font-size:15px;height:50px}
+.setup-submit{font-size:15px;height:51px}
+.setup-privacy{font-size:12px}
+.setup-error{font-size:13px}
+.record-form{gap:13px;padding:17px}
+.record-form label{font-size:13px}
+.record-form input,.record-form select{height:44px;font-size:14px}
+.form-submit{height:45px;font-size:14px}
+.status-select{font-size:12px;max-width:100px;padding:7px 6px}
+.empty-record{font-size:13px}
+.expense-filters button{font-size:12px;padding:10px 13px;min-height:40px}
+.custom-range{font-size:12px}
+.custom-range input{height:43px;font-size:13px}
+.delete-record{width:30px;height:30px;font-size:20px}
+@media(max-width:560px){
+  .stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .stat-card:first-child{grid-column:1/-1;min-height:80px;padding:12px}
+  .stat-card:first-child .stat-icon{width:40px;height:40px}
+  .stat-card:first-child .stat-label{font-size:13px}
+  .stat-card:first-child .stat-value{font-size:27px}
+  .welcome-row h1{font-size:23px}
+  .subheading{font-size:14px}
+  .hero-copy h2{font-size:26px}
+  .hero-copy p{font-size:12px}
+  .section-heading h2{font-size:18px}
+  .stat-note{font-size:10px}
+  .stat-value{font-size:26px}
+  .stat-label{font-size:13px}
+  .schedule-info h3{font-size:13px}
+  .schedule-info p,.schedule-time strong,.schedule-time span{font-size:11px}
+  .schedule-card{padding:13px 11px;gap:10px}
+  .tip-banner p{font-size:11px}
+  .cow-card{gap:8px;padding:12px 9px}
+  .cow-info h3,.expense-info h3{font-size:14px}
+  .cow-info p,.expense-info p{font-size:12px}
+  .status-select{max-width:82px;font-size:11px}
+  .delete-record{width:27px;height:27px;font-size:19px}
+  .filter-pill{font-size:12px}
+  .expense-total>strong{font-size:28px}
+  .expense-card{gap:8px;padding:12px 9px}
+  .expense-card>strong{font-size:12px}
+  .bottom-nav{padding-left:8px;padding-right:8px}
+  .bottom-nav button{font-size:9px;line-height:1.05;min-width:0}
+}
+@media(min-width:561px) and (max-width:999px){.stats-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
