@@ -73,6 +73,30 @@
 .confirm-cancel{background:#fff;color:#52617a}
 .confirm-accept{border-color:#3468c5!important;background:#3468c5;color:#fff}
 .confirm-accept.danger{border-color:#c84f5c!important;background:#c84f5c}
+.cashflow-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:14px 0 25px}
+.cashflow-card{min-width:0;display:flex;flex-direction:column;gap:7px;padding:13px;border:1px solid #e2e8f2;border-radius:13px;background:#fff}
+.cashflow-card span{color:#71809a;font-size:11px;font-weight:600}
+.cashflow-card strong{overflow:hidden;color:#263449;font:700 16px 'Inter',sans-serif;text-overflow:ellipsis;white-space:nowrap}
+.cashflow-card.income strong{color:#367954}
+.cashflow-card.outgoing strong{color:#bd7254}
+.cashflow-card.balance{grid-column:1 / -1;background:#e8efff;border-color:#dbe6fa}
+.cashflow-card.balance strong{color:#3468c5}
+.income-section{margin-top:28px}
+.income-card{border-color:#e1eee5}
+.income-card>strong{color:#367954}
+.recommendation-card.insemination .recommendation-icon{background:#e8efff;color:#3468c5}
+.recommendation-card.weaning .recommendation-icon{background:#e8efff;color:#3468c5}
+.recommendation-card.likelihood .recommendation-icon{background:#e5f3ec;color:#438363}
+.recommendation-card.likelihood a{display:inline-block;margin-top:6px;color:#3468c5;font-size:11px;font-weight:650;text-decoration:underline}
+.heat-check-copy{flex:1;min-width:0}
+.heat-check-toggle{display:flex;align-items:center;gap:7px;margin-top:9px;color:#52617a;font-size:12px;font-weight:650;cursor:pointer}
+.heat-check-toggle input{width:18px;height:18px;accent-color:#3468c5}
+.heat-check-toggle.disabled{color:#9aa7bb;cursor:not-allowed}
+.heat-check-toggle input:disabled{opacity:.5;cursor:not-allowed}
+.finance-add-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0 0 12px}
+.finance-add-button{display:flex;align-items:center;justify-content:center;gap:6px;min-width:0;min-height:44px;padding:0 8px;border:1px solid #3468c5;border-radius:11px;background:#3468c5;color:#fff;font:700 12px 'Inter',sans-serif;cursor:pointer}
+.finance-add-button:last-child{border-color:#d9e2f0;background:#fff;color:#3468c5}
+.income-form{margin-bottom:22px}
 @keyframes modal-enter{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
 .visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .calendar-back{margin:0 0 14px;padding:8px 0;border:0;background:none;color:#3468c5;font:700 13px 'Inter',sans-serif;cursor:pointer}
@@ -99,6 +123,7 @@
 .calendar-cow-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
 .calendar-cow-info strong{color:#263449;font-size:14px}
 .calendar-cow-info small{color:#71809a;font-size:11px;line-height:1.35}
+.cow-pregnancy-likelihood{color:#367954!important;font-weight:700}
 .cow-name-link{padding:0;border:0;background:none;color:#263449;font:700 15px 'Inter',sans-serif;text-align:left;cursor:pointer}
 .bottom-nav{gap:4px}
 .bottom-nav button{width:100px}
