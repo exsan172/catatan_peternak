@@ -1,5 +1,6 @@
 <script>
   import { onMount } from 'svelte';
+  import { slide } from 'svelte/transition';
 
   let activeTab = $state('home');
   let cowFilter = $state('Semua');
@@ -19,12 +20,16 @@
   let confirmResolver = null;
   let cows = $state([]);
   let schedules = $state([]);
+  let expandedScheduleGroups = $state({});
   let expenses = $state([]);
   let incomes = $state([]);
   let showCowForm = $state(false);
   let showScheduleForm = $state(false);
   let showExpenseForm = $state(false);
   let showIncomeForm = $state(false);
+  let editingCowId = $state(null);
+  let editingExpenseId = $state(null);
+  let editingIncomeId = $state(null);
   let cowName = $state('');
   let cowBreed = $state('PO');
   let cowStatus = $state('Sehat');
@@ -44,6 +49,7 @@
   let incomeAmount = $state('');
   let incomeDate = $state(new Date().toISOString().slice(0, 10));
   let expenseRange = $state('Semua');
+  let financeHistoryTab = $state('pengeluaran');
   let customStart = $state(new Date().toISOString().slice(0, 10));
   let customEnd = $state(new Date().toISOString().slice(0, 10));
 
@@ -292,9 +298,15 @@
   }
   let filteredExpenses = $derived.by(() => filterFinanceRows(expenses));
   let filteredIncomes = $derived.by(() => filterFinanceRows(incomes));
+  let filteredRevenue = $derived(filteredIncomes.filter((income) => income.category !== 'Modal'));
   let expenseTotal = $derived(filteredExpenses.reduce((total, expense) => total + Number(expense.amount || 0), 0));
-  let incomeTotal = $derived(filteredIncomes.reduce((total, income) => total + Number(income.amount || 0), 0));
+  let incomeTotal = $derived(filteredRevenue.reduce((total, income) => total + Number(income.amount || 0), 0));
   let cashflowTotal = $derived(incomeTotal - expenseTotal);
+  let availableBalance = $derived(
+    incomes.filter((income) => income.category === 'Modal').reduce((total, income) => total + Number(income.amount || 0), 0)
+    + incomes.filter((income) => income.category !== 'Modal').reduce((total, income) => total + Number(income.amount || 0), 0)
+    - expenses.reduce((total, expense) => total + Number(expense.amount || 0), 0),
+  );
   let filteredCows = $derived(cows.filter((cow) => cowFilter === 'Semua' || (cowFilter === 'Hamil' ? cow.status === 'Hamil' || cow.pregnant : cow.status === cowFilter)));
   let selectedCalendarCow = $derived(cows.find((cow) => cow.id === selectedCalendarCowId) || null);
   let pregnancyCheckRecommendation = $derived(selectedCalendarCow?.inseminationDate && (!selectedCalendarCow.pregnancyResult || selectedCalendarCow.pregnancyResult === 'Belum diperiksa') ? addDaysToDate(selectedCalendarCow.inseminationDate, 60) : null);
@@ -323,6 +335,15 @@
     }
     return items.sort((a, b) => `${a.date} ${a.time || ''}`.localeCompare(`${b.date} ${b.time || ''}`));
   });
+  let upcomingScheduleGroups = $derived.by(() => {
+    const groups = new Map();
+    for (const item of upcomingSchedules) {
+      const key = item.cow?.id || 'farm';
+      if (!groups.has(key)) groups.set(key, { id: key, name: item.cow?.name || 'Jadwal peternakan', code: item.cow?.code || '', items: [] });
+      groups.get(key).items.push(item);
+    }
+    return [...groups.values()].sort((a, b) => `${a.items[0]?.date || ''} ${a.name}`.localeCompare(`${b.items[0]?.date || ''} ${b.name}`));
+  });
 
   onMount(async () => {
     await removePreviousDemoRecords();
@@ -338,9 +359,21 @@
 
   async function addCow(event) {
     event.preventDefault();
-    const record = { id: `cow-${crypto.randomUUID()}`, name: cowName.trim(), code: String(Date.now()).slice(-4), breed: cowBreed, status: cowStatus, pregnant: cowStatus === 'Hamil', birthDate: cowBirthDate || null };
+    const existing = cows.find((cow) => cow.id === editingCowId);
+    const record = existing
+      ? { ...existing, name: cowName.trim(), breed: cowBreed, status: cowStatus, pregnant: cowStatus === 'Hamil', birthDate: cowBirthDate || null }
+      : { id: `cow-${crypto.randomUUID()}`, name: cowName.trim(), code: String(Date.now()).slice(-4), breed: cowBreed, status: cowStatus, pregnant: cowStatus === 'Hamil', birthDate: cowBirthDate || null };
     await saveRecord('cows', record);
-    cows = [...cows, record]; cowName = ''; cowBreed = 'PO'; cowStatus = 'Sehat'; cowBirthDate = ''; showCowForm = false;
+    cows = existing ? cows.map((cow) => cow.id === record.id ? record : cow) : [...cows, record];
+    editingCowId = null; cowName = ''; cowBreed = 'PO'; cowStatus = 'Sehat'; cowBirthDate = ''; showCowForm = false;
+  }
+
+  function editCow(cow) {
+    editingCowId = cow.id; cowName = cow.name; cowBreed = cow.breed || 'PO'; cowStatus = cow.status || 'Sehat'; cowBirthDate = cow.birthDate || ''; showCowForm = true;
+  }
+
+  function startNewCow() {
+    editingCowId = null; cowName = ''; cowBreed = 'PO'; cowStatus = 'Sehat'; cowBirthDate = ''; showCowForm = !showCowForm;
   }
 
   async function updateCowStatus(cow, status) {
@@ -419,17 +452,36 @@
 
   async function addExpense(event) {
     event.preventDefault();
-    const record = { id: `expense-${crypto.randomUUID()}`, name: expenseName.trim(), category: expenseCategory, detail: expenseCategory, amount: Number(expenseAmount), date: expenseDate };
+    const existing = expenses.find((expense) => expense.id === editingExpenseId);
+    const record = { ...(existing || {}), id: existing?.id || `expense-${crypto.randomUUID()}`, name: expenseName.trim(), category: expenseCategory, detail: expenseCategory, amount: Number(expenseAmount), date: expenseDate };
     await saveRecord('expenses', record);
-    expenses = [record, ...expenses]; expenseName = ''; expenseAmount = ''; showExpenseForm = false;
+    expenses = existing ? expenses.map((expense) => expense.id === record.id ? record : expense) : [record, ...expenses];
+    editingExpenseId = null; expenseName = ''; expenseAmount = ''; showExpenseForm = false;
+  }
+
+  function editExpense(expense) {
+    editingExpenseId = expense.id; expenseName = expense.name; expenseCategory = expense.category || 'Pakan'; expenseAmount = String(expense.amount); expenseDate = expense.date; showExpenseForm = true; showIncomeForm = false; financeHistoryTab = 'pengeluaran';
+  }
+
+  function startNewExpense() {
+    editingExpenseId = null; expenseName = ''; expenseCategory = 'Pakan'; expenseAmount = ''; expenseDate = new Date().toISOString().slice(0, 10); showExpenseForm = !showExpenseForm; showIncomeForm = false;
   }
 
   async function addIncome(event) {
     event.preventDefault();
-    const record = { id: `income-${crypto.randomUUID()}`, name: incomeName.trim(), category: incomeCategory, detail: incomeCategory, amount: Number(incomeAmount), date: incomeDate };
+    const existing = incomes.find((income) => income.id === editingIncomeId);
+    const record = { ...(existing || {}), id: existing?.id || `income-${crypto.randomUUID()}`, name: incomeName.trim(), category: incomeCategory, detail: incomeCategory, amount: Number(incomeAmount), date: incomeDate };
     await saveRecord('incomes', record);
-    incomes = [record, ...incomes];
-    incomeName = ''; incomeAmount = ''; showIncomeForm = false;
+    incomes = existing ? incomes.map((income) => income.id === record.id ? record : income) : [record, ...incomes];
+    editingIncomeId = null; incomeName = ''; incomeAmount = ''; showIncomeForm = false;
+  }
+
+  function editIncome(income) {
+    editingIncomeId = income.id; incomeName = income.name; incomeCategory = income.category || 'Jual kohe'; incomeAmount = String(income.amount); incomeDate = income.date; showIncomeForm = true; showExpenseForm = false; financeHistoryTab = 'pemasukan';
+  }
+
+  function startNewIncome() {
+    editingIncomeId = null; incomeName = ''; incomeCategory = 'Jual kohe'; incomeAmount = ''; incomeDate = new Date().toISOString().slice(0, 10); showIncomeForm = !showIncomeForm; showExpenseForm = false;
   }
 
   async function deleteExpense(expense) {
@@ -662,7 +714,7 @@
       <span class="brand-farm-name">{profile.farmName}</span>
     </a>
     <div class="top-actions">
-      <button class="avatar" aria-label="Pemilik {profile.ownerName}">{profile.ownerName.slice(0, 1).toUpperCase()}</button>
+      <button class="avatar" aria-label="Buka profil {profile.ownerName}" onclick={() => activeTab = 'profil'}>{profile.ownerName.slice(0, 1).toUpperCase()}</button>
     </div>
   </header>
 
@@ -683,22 +735,40 @@
 
       <section class="section-block schedule-section">
         <div class="section-heading"><div><p class="eyebrow">JANGAN TERLEWAT</p><h2>Jadwal mendatang</h2></div></div>
-        <div class="schedule-list">
-          {#each upcomingSchedules as item (item.id)}
-            <article class="schedule-card"><span class="schedule-icon {scheduleTone(item.kind)}">{@render Icon(scheduleIcon(item.kind), 19)}</span><div class="schedule-info"><span class="schedule-kind">{item.kind}</span><h3>{item.title}</h3><p>{item.detail}</p></div><div class="schedule-time"><strong>{displayScheduleDate(item.date)}</strong><span>{item.time || 'Pengingat'}</span></div>{#if item.source === 'manual'}<button class="delete-record" aria-label="Hapus jadwal" onclick={() => deleteSchedule(item)}>×</button>{:else}<button class="schedule-open" aria-label="Buka detail sapi {item.cow.name}" onclick={() => { activeTab = 'kalender'; openReproductionDetails(item.cow); }}>{@render Icon('chevron', 17)}</button>{/if}</article>
-          {/each}
-        </div>
+        {#each upcomingScheduleGroups as group (group.id)}
+          <div class="schedule-group">
+            <button class="schedule-group-heading" aria-expanded={Boolean(expandedScheduleGroups[group.id])} onclick={() => expandedScheduleGroups = { ...expandedScheduleGroups, [group.id]: !expandedScheduleGroups[group.id] }}>
+              <span class="schedule-group-cow-icon">{@render Icon('cow', 20)}</span>
+              <span class="schedule-group-name">{group.name}{#if group.code}<small>Sapi #{group.code}</small>{/if}</span>
+              <span class="schedule-group-count">{group.items.length} jadwal</span>
+              <span class="schedule-group-arrow" class:expanded={expandedScheduleGroups[group.id]}>{@render Icon('chevron', 17)}</span>
+            </button>
+            {#if expandedScheduleGroups[group.id]}
+              <div class="schedule-list schedule-group-content" transition:slide={{ duration: 220 }}>
+                {#each group.items as item (item.id)}
+                  <article class="schedule-card"><span class="schedule-icon {scheduleTone(item.kind)}">{@render Icon(scheduleIcon(item.kind), 19)}</span><div class="schedule-info"><span class="schedule-kind">{item.kind}</span><h3>{item.title}</h3>{#if item.source === 'manual'}<p>{item.detail}</p>{/if}</div><div class="schedule-time"><strong>{displayScheduleDate(item.date)}</strong><span>{item.time || 'Pengingat'}</span></div>{#if item.source === 'manual'}<button class="delete-record" aria-label="Hapus jadwal" onclick={() => deleteSchedule(item)}>×</button>{:else}<button class="schedule-open" aria-label="Buka detail sapi {item.cow.name}" onclick={() => { activeTab = 'kalender'; openReproductionDetails(item.cow); }}>{@render Icon('chevron', 17)}</button>{/if}</article>
+                {/each}
+              </div>
+            {/if}
+          </div>
+        {/each}
         {#if upcomingSchedules.length === 0}<p class="empty-record">Belum ada jadwal mendatang. Tambahkan jadwal atau catat tanggal birahi, IB, dan obat cacing pada data sapi.</p>{/if}
       </section>
 
-      <section class="tip-banner"><span class="tip-icon">✳</span><div><strong>Catatan hari ini</strong><p>Jangan lupa cek ketersediaan air minum di kandang.</p></div><span class="tip-chevron">{@render Icon('chevron', 16)}</span></section>
       <section class="backup-card"><div class="backup-copy"><strong>Pindahkan data ke perangkat lain</strong><p>Ekspor file cadangan, lalu impor di perangkat tujuan. Bisa dilakukan tanpa internet.</p></div><div class="backup-actions"><button onclick={exportData}>{@render Icon('download', 17)} Ekspor data</button><button class="secondary" onclick={() => backupFileInput?.click()}>{@render Icon('upload', 17)} Impor data</button><input bind:this={backupFileInput} class="visually-hidden" type="file" accept="application/json,.json" onchange={importData} /></div>{#if backupMessage}<p class="backup-message" role="status">{backupMessage}</p>{/if}</section>
+    {:else if activeTab === 'profil'}
+      <section class="page-heading"><p class="eyebrow">AKUN PETERNAKAN</p><h1>Profil</h1><p class="subheading">Informasi pemilik dan peternakanmu.</p></section>
+      <section class="profile-details" aria-label="Informasi profil">
+        <article class="profile-detail-card"><span class="profile-detail-icon">{@render Icon('cow', 20)}</span><div><p>Nama pemilik</p><strong>{profile.ownerName}</strong></div></article>
+        <article class="profile-detail-card"><span class="profile-detail-icon">{@render Icon('barn', 20)}</span><div><p>Nama peternakan</p><strong>{profile.farmName}</strong></div></article>
+        <article class="profile-detail-card"><span class="profile-detail-icon">{@render Icon('cow', 20)}</span><div><p>Jumlah ternak</p><strong>{cows.length} <small>ekor</small></strong></div></article>
+      </section>
     {:else if activeTab === 'sapi'}
       <section class="page-heading"><p class="eyebrow">DATA PETERNAKAN</p><h1>Daftar sapi</h1><p class="subheading">Kelola dan pantau kondisi ternakmu.</p></section>
-      <div class="section-heading cow-title-row"><div class="cow-summary"><div><span class="eyebrow">TOTAL TERNAK</span><strong>{cows.length} <small>ekor</small></strong></div><span class="summary-cow">{@render Icon('cow', 32)}</span></div><button class="round-action" aria-label="Tambah sapi" onclick={() => showCowForm = !showCowForm}>{@render Icon('plus', 18)}</button></div>
-      {#if showCowForm}<form class="record-form" onsubmit={addCow}><label>Nama sapi<input bind:value={cowName} placeholder="Contoh: Putri" required /></label><div class="form-grid"><label>Jenis sapi<select bind:value={cowBreed}><option>PO</option><option>Limousin</option><option>Simmental</option><option>Brahman</option><option>Angus</option><option>Lainnya</option></select></label><label>Kondisi<select bind:value={cowStatus}><option>Sehat</option><option>Sakit</option><option>Menyusui</option><option>Hamil</option></select></label></div><label>Tanggal lahir <span class="optional-label">(opsional)</span><input type="date" bind:value={cowBirthDate} /></label><button class="form-submit" type="submit">Simpan sapi</button></form>{/if}
+      <div class="section-heading cow-title-row"><div class="cow-summary"><div><span class="eyebrow">TOTAL TERNAK</span><strong>{cows.length} <small>ekor</small></strong></div><span class="summary-cow">{@render Icon('cow', 32)}</span></div><button class="round-action" aria-label="Tambah sapi" onclick={startNewCow}>{@render Icon('plus', 18)}</button></div>
+      {#if showCowForm}<form class="record-form" onsubmit={addCow}><label>Nama sapi<input bind:value={cowName} placeholder="Contoh: Putri" required /></label><div class="form-grid"><label>Jenis sapi<select bind:value={cowBreed}><option>PO</option><option>Limousin</option><option>Simmental</option><option>Brahman</option><option>Angus</option><option>Lainnya</option></select></label><label>Kondisi<select bind:value={cowStatus}><option>Sehat</option><option>Sakit</option><option>Menyusui</option><option>Hamil</option></select></label></div><label>Tanggal lahir <span class="optional-label">(opsional)</span><input type="date" bind:value={cowBirthDate} /></label>{#if editingCowId}<button class="form-cancel" type="button" onclick={() => { editingCowId = null; showCowForm = false; }}>Batal</button>{/if}<button class="form-submit" type="submit">{editingCowId ? 'Simpan perubahan' : 'Simpan sapi'}</button></form>{/if}
       <div class="filter-row"><button class="filter-pill" class:selected={cowFilter === 'Semua'} onclick={() => cowFilter = 'Semua'}>Semua <span>{cows.length}</span></button><button class="filter-pill" class:selected={cowFilter === 'Sehat'} onclick={() => cowFilter = 'Sehat'}>Sehat <span>{cows.filter((cow) => cow.status === 'Sehat').length}</span></button><button class="filter-pill" class:selected={cowFilter === 'Sakit'} onclick={() => cowFilter = 'Sakit'}>Sakit <span>{cows.filter((cow) => cow.status === 'Sakit').length}</span></button><button class="filter-pill" class:selected={cowFilter === 'Menyusui'} onclick={() => cowFilter = 'Menyusui'}>Menyusui <span>{cows.filter((cow) => cow.status === 'Menyusui').length}</span></button><button class="filter-pill" class:selected={cowFilter === 'Hamil'} onclick={() => cowFilter = 'Hamil'}>Hamil <span>{cows.filter((cow) => cow.status === 'Hamil' || cow.pregnant).length}</span></button></div>
-      <div class="cow-list">{#each filteredCows as cow (cow.id)}<article class="cow-card"><span class="cow-avatar {cowTone(cow)}">{cow.name.slice(0, 1).toUpperCase()}</span><div class="cow-info"><h3><button class="cow-name-link" onclick={() => { activeTab = 'kalender'; openReproductionDetails(cow); }}>{cow.name}</button></h3><p>#{cow.code} · {cow.breed}</p>{#if cow.birthDate}<p class="cow-birth">Lahir: {localDate(cow.birthDate)}</p>{/if}{#if cow.calvingDate}<p class="cow-birth">Melahirkan: {localDate(cow.calvingDate)}</p>{/if}{#if weaningDateForCow(cow)}<p class="cow-pregnancy-likelihood">Sapih: {localDate(weaningDateForCow(cow))}</p>{/if}{#if pregnancyLikelihoodForCow(cow)}<p class="cow-pregnancy-likelihood">Perkiraan bunting: {pregnancyLikelihoodForCow(cow).percent}%</p>{/if}</div><select class="status-select" aria-label="Ubah status sapi" value={cow.status === 'Hamil' || cow.pregnant ? 'Hamil' : cow.status} onchange={(event) => updateCowStatus(cow, event.currentTarget.value)}><option>Sehat</option><option>Sakit</option><option>Menyusui</option><option>Hamil</option></select><button class="delete-record" aria-label="Hapus sapi" onclick={() => deleteCow(cow)}>×</button></article>{/each}</div>
+      <div class="cow-list">{#each filteredCows as cow (cow.id)}<article class="cow-card"><span class="cow-avatar {cowTone(cow)}">{cow.name.slice(0, 1).toUpperCase()}</span><div class="cow-info"><h3><button class="cow-name-link" onclick={() => { activeTab = 'kalender'; openReproductionDetails(cow); }}>{cow.name}</button></h3><p>#{cow.code} · {cow.breed}</p>{#if cow.birthDate}<p class="cow-birth">Lahir: {localDate(cow.birthDate)}</p>{/if}{#if cow.calvingDate}<p class="cow-birth">Melahirkan: {localDate(cow.calvingDate)}</p>{/if}{#if weaningDateForCow(cow)}<p class="cow-pregnancy-likelihood">Sapih: {localDate(weaningDateForCow(cow))}</p>{/if}{#if pregnancyLikelihoodForCow(cow)}<p class="cow-pregnancy-likelihood">Perkiraan bunting: {pregnancyLikelihoodForCow(cow).percent}%</p>{/if}</div><button class="edit-record" aria-label="Edit data sapi {cow.name}" onclick={() => editCow(cow)}>Edit</button><select class="status-select" aria-label="Ubah status sapi" value={cow.status === 'Hamil' || cow.pregnant ? 'Hamil' : cow.status} onchange={(event) => updateCowStatus(cow, event.currentTarget.value)}><option>Sehat</option><option>Sakit</option><option>Menyusui</option><option>Hamil</option></select><button class="delete-record" aria-label="Hapus sapi" onclick={() => deleteCow(cow)}>×</button></article>{/each}</div>
       {#if filteredCows.length === 0}<p class="empty-record">Belum ada sapi pada kategori ini.</p>{/if}
     {:else if activeTab === 'pengeluaran'}
       <section class="page-heading"><p class="eyebrow">KEUANGAN PETERNAKAN</p><h1>Keuangan kandang</h1><p class="subheading">Catat pemasukan dan pengeluaran kandang.</p></section>
@@ -709,22 +779,28 @@
         <div class="custom-range"><label>Dari<input type="date" bind:value={customStart} /></label><span>sampai</span><label>Sampai<input type="date" bind:value={customEnd} /></label></div>
       {/if}
       <label class="expense-search"><span class="sr-only">Cari nama transaksi</span><input type="search" bind:value={expenseSearch} placeholder="Cari nama pemasukan atau pengeluaran" /></label>
-      <div class="cashflow-grid"><article class="cashflow-card income"><span>Total pemasukan</span><strong>{money(incomeTotal)}</strong></article><article class="cashflow-card outgoing"><span>Total pengeluaran</span><strong>{money(expenseTotal)}</strong></article><article class="cashflow-card balance"><span>Arus kas bersih</span><strong>{money(cashflowTotal)}</strong></article></div>
-      <div class="finance-add-actions"><button class="finance-add-button" onclick={() => { showIncomeForm = !showIncomeForm; showExpenseForm = false; }}>{@render Icon('plus', 17)} Tambah pemasukan</button><button class="finance-add-button" onclick={() => { showExpenseForm = !showExpenseForm; showIncomeForm = false; }}>{@render Icon('plus', 17)} Tambah pengeluaran</button></div>
-      {#if showIncomeForm}<form class="record-form income-form" onsubmit={addIncome}><label>Nama pemasukan<input bind:value={incomeName} placeholder="Contoh: Jual kohe" required /></label><div class="form-grid"><label>Kategori<select bind:value={incomeCategory}><option>Jual kohe</option><option>Jual pedet</option><option>Jual sapi</option><option>Susu</option><option>Lainnya</option></select></label><label>Jumlah (Rp)<input type="number" min="1" bind:value={incomeAmount} placeholder="150000" required /></label><label>Tanggal<input type="date" bind:value={incomeDate} required /></label></div><button class="form-submit" type="submit">Simpan pemasukan</button></form>{/if}
-      {#if showExpenseForm}<form class="record-form income-form" onsubmit={addExpense}><label>Nama pengeluaran<input bind:value={expenseName} placeholder="Contoh: Pakan konsentrat" required /></label><div class="form-grid"><label>Kategori<select bind:value={expenseCategory}><option>Pakan</option><option>Obat</option><option>Kesehatan</option><option>Perawatan</option><option>Lainnya</option></select></label><label>Jumlah (Rp)<input type="number" min="1" bind:value={expenseAmount} placeholder="250000" required /></label><label>Tanggal<input type="date" bind:value={expenseDate} required /></label></div><button class="form-submit" type="submit">Simpan pengeluaran</button></form>{/if}
-      <section class="section-block expenses-section"><div class="section-heading"><div><p class="eyebrow">RIWAYAT</p><h2>Pengeluaran terbaru</h2></div><div class="expense-heading-actions"><button class="import-trigger" aria-label="Impor pengeluaran CSV" title="Impor pengeluaran CSV" onclick={() => expenseImportInput?.click()}>{@render Icon('upload', 17)}<span>Impor</span></button><input bind:this={expenseImportInput} class="visually-hidden" type="file" accept=".csv,text/csv" onchange={importExpenses} /></div></div>
+      <div class="cashflow-grid"><article class="cashflow-card income"><span>Total pemasukan</span><strong>{money(incomeTotal)}</strong></article><article class="cashflow-card outgoing"><span>Total pengeluaran</span><strong>{money(expenseTotal)}</strong></article><article class="cashflow-card balance"><span>Arus kas bersih · sesuai filter</span><strong>{money(cashflowTotal)}</strong></article><article class="cashflow-card available"><span>Saldo tersisa · semua waktu</span><strong>{money(availableBalance)}</strong></article></div>
+      <div class="finance-history-tabs" role="tablist" aria-label="Riwayat keuangan">
+        <button id="expenses-tab" role="tab" aria-selected={financeHistoryTab === 'pengeluaran'} class:chosen={financeHistoryTab === 'pengeluaran'} onclick={() => financeHistoryTab = 'pengeluaran'}>Pengeluaran <span>{filteredExpenses.length}</span></button>
+        <button id="incomes-tab" role="tab" aria-selected={financeHistoryTab === 'pemasukan'} class:chosen={financeHistoryTab === 'pemasukan'} onclick={() => financeHistoryTab = 'pemasukan'}>Pemasukan <span>{filteredIncomes.length}</span></button>
+      </div>
+      {#if financeHistoryTab === 'pengeluaran'}
+      <section class="section-block expenses-section" role="tabpanel" aria-labelledby="expenses-tab"><div class="section-heading"><div><p class="eyebrow">RIWAYAT</p><h2>Pengeluaran terbaru</h2></div><div class="expense-heading-actions"><button class="finance-add-button" onclick={startNewExpense}>{@render Icon('plus', 17)}<span>Tambah</span></button><button class="import-trigger" aria-label="Impor pengeluaran CSV" title="Impor pengeluaran CSV" onclick={() => expenseImportInput?.click()}>{@render Icon('upload', 17)}<span>Impor</span></button><input bind:this={expenseImportInput} class="visually-hidden" type="file" accept=".csv,text/csv" onchange={importExpenses} /></div></div>
+        {#if showExpenseForm}<form class="record-form income-form" onsubmit={addExpense}><label>Nama pengeluaran<input bind:value={expenseName} placeholder="Contoh: Pakan konsentrat" required /></label><div class="form-grid"><label>Kategori<select bind:value={expenseCategory}><option>Pakan</option><option>Obat</option><option>Kesehatan</option><option>Perawatan</option><option>Lainnya</option></select></label><label>Jumlah (Rp)<input type="number" min="1" bind:value={expenseAmount} placeholder="250000" required /></label><label>Tanggal<input type="date" bind:value={expenseDate} required /></label></div>{#if editingExpenseId}<button class="form-cancel" type="button" onclick={() => { editingExpenseId = null; showExpenseForm = false; }}>Batal</button>{/if}<button class="form-submit" type="submit">{editingExpenseId ? 'Simpan perubahan' : 'Simpan pengeluaran'}</button></form>{/if}
         <details class="expense-import-format"><summary>Contoh format CSV</summary><p>Urutan kolom: nama, kategori, jumlah, tanggal, keterangan. Jumlah tanpa Rp/pemisah ribuan; tanggal YYYY-MM-DD.</p><pre>nama,kategori,jumlah,tanggal,keterangan
 Pakan konsentrat,Pakan,250000,2026-10-20,Pembelian pakan mingguan
 Obat cacing,Obat,85000,2026-10-20,Untuk sapi Lestari</pre><button class="sample-download" onclick={downloadExpenseSample}>{@render Icon('download', 15)} Unduh contoh CSV</button></details>
         {#if expenseImportMessage}<p class="backup-message" role="status">{expenseImportMessage}</p>{/if}
-        <div class="expense-list">{#each filteredExpenses as expense (expense.id)}<article class="expense-card"><span class="expense-icon {expense.category === 'Kesehatan' || expense.category === 'Obat' ? 'peach' : expense.category === 'Perawatan' ? 'lilac' : 'sage'}">{@render Icon(expenseIcon(expense.category), 19)}</span><div class="expense-info"><h3>{expense.name}</h3><p>{expense.detail} · {localDate(expense.date)}</p></div><strong>{money(expense.amount)}</strong><button class="delete-record" aria-label="Hapus pengeluaran" onclick={() => deleteExpense(expense)}>×</button></article>{/each}</div>
+        <div class="expense-list">{#each filteredExpenses as expense (expense.id)}<article class="expense-card"><span class="expense-icon {expense.category === 'Kesehatan' || expense.category === 'Obat' ? 'peach' : expense.category === 'Perawatan' ? 'lilac' : 'sage'}">{@render Icon(expenseIcon(expense.category), 19)}</span><div class="expense-info"><h3>{expense.name}</h3><p>{expense.detail} · {localDate(expense.date)}</p></div><strong>{money(expense.amount)}</strong><button class="edit-record" aria-label="Edit pengeluaran {expense.name}" onclick={() => editExpense(expense)}>Edit</button><button class="delete-record" aria-label="Hapus pengeluaran" onclick={() => deleteExpense(expense)}>×</button></article>{/each}</div>
         {#if filteredExpenses.length === 0}<p class="empty-record">Tidak ada pengeluaran pada rentang ini.</p>{/if}
       </section>
-      <section class="section-block income-section"><div class="section-heading"><div><p class="eyebrow">UANG MASUK</p><h2>Pemasukan terbaru</h2></div></div>
-        <div class="expense-list">{#each filteredIncomes as income (income.id)}<article class="expense-card income-card"><span class="expense-icon mint">{@render Icon('wallet', 19)}</span><div class="expense-info"><h3>{income.name}</h3><p>{income.category} · {localDate(income.date)}</p></div><strong>+{money(income.amount)}</strong><button class="delete-record" aria-label="Hapus pemasukan" onclick={() => deleteIncome(income)}>×</button></article>{/each}</div>
+      {:else}
+      <section class="section-block income-section" role="tabpanel" aria-labelledby="incomes-tab"><div class="section-heading"><div><p class="eyebrow">UANG MASUK</p><h2>Pemasukan terbaru</h2></div><div class="expense-heading-actions"><button class="finance-add-button" onclick={startNewIncome}>{@render Icon('plus', 17)}<span>Tambah</span></button></div></div>
+        {#if showIncomeForm}<form class="record-form income-form" onsubmit={addIncome}><label>Nama pemasukan<input bind:value={incomeName} placeholder="Contoh: Jual kohe" required /></label><div class="form-grid"><label>Kategori<select bind:value={incomeCategory}><option>Modal</option><option>Jual kohe</option><option>Jual pedet</option><option>Jual sapi</option><option>Susu</option><option>Lainnya</option></select></label><label>Jumlah (Rp)<input type="number" min="1" bind:value={incomeAmount} placeholder="150000" required /></label><label>Tanggal<input type="date" bind:value={incomeDate} required /></label></div>{#if editingIncomeId}<button class="form-cancel" type="button" onclick={() => { editingIncomeId = null; showIncomeForm = false; }}>Batal</button>{/if}<button class="form-submit" type="submit">{editingIncomeId ? 'Simpan perubahan' : 'Simpan pemasukan'}</button></form>{/if}
+        <div class="expense-list">{#each filteredIncomes as income (income.id)}<article class="expense-card income-card"><span class="expense-icon mint">{@render Icon('wallet', 19)}</span><div class="expense-info"><h3>{income.name}</h3><p>{income.category} · {localDate(income.date)}</p></div><strong>+{money(income.amount)}</strong><button class="edit-record" aria-label="Edit pemasukan {income.name}" onclick={() => editIncome(income)}>Edit</button><button class="delete-record" aria-label="Hapus pemasukan" onclick={() => deleteIncome(income)}>×</button></article>{/each}</div>
         {#if filteredIncomes.length === 0}<p class="empty-record">Tidak ada pemasukan pada rentang ini.</p>{/if}
       </section>
+      {/if}
     {:else if activeTab === 'kalender'}
       <section class="page-heading"><p class="eyebrow">REPRODUKSI SAPI</p><h1>Kalender birahi</h1><p class="subheading">Catat birahi, IB, cek kehamilan, dan obat cacing.</p></section>
       {#if selectedCalendarCow}
