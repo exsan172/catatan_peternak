@@ -32,8 +32,10 @@
   let editingIncomeId = $state(null);
   let cowName = $state('');
   let cowBreed = $state('PO');
+  let cowCategory = $state('');
   let cowStatus = $state('Sehat');
   let cowBirthDate = $state('');
+  let cowMotherId = $state('');
   let scheduleTitle = $state('');
   let scheduleKind = $state('Birahi');
   let scheduleDate = $state(new Date().toISOString().slice(0, 10));
@@ -203,11 +205,24 @@
   }
 
   function localDate(date) { return new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(`${date}T00:00:00`)); }
+  function cowAge(birthDate) {
+    if (!birthDate) return '';
+    const birth = new Date(`${birthDate}T00:00:00`);
+    const today = new Date(`${todayKey()}T00:00:00`);
+    if (birth > today) return 'Belum lahir';
+    let years = today.getFullYear() - birth.getFullYear();
+    let months = today.getMonth() - birth.getMonth();
+    let days = today.getDate() - birth.getDate();
+    if (days < 0) { months -= 1; days += new Date(today.getFullYear(), today.getMonth(), 0).getDate(); }
+    if (months < 0) { years -= 1; months += 12; }
+    return [years ? `${years} tahun` : '', months ? `${months} bulan` : '', days ? `${days} hari` : ''].filter(Boolean).join(' ') || '0 hari';
+  }
   function todayKey() {
     const today = new Date();
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   }
   function cowTone(cow) { return cow.status === 'Sakit' ? 'peach' : cow.pregnant ? 'lilac' : 'mint'; }
+  function motherName(cow) { return cows.find((candidate) => candidate.id === cow.motherId)?.name || ''; }
   function scheduleTone(kind) { return kind === 'Birahi' ? 'peach' : kind === 'Pakan' ? 'sage' : 'mint'; }
   function scheduleIcon(kind) { return kind === 'Birahi' ? 'spark' : kind === 'Pakan' ? 'leaf' : kind === 'Sapih' ? 'cow' : 'stethoscope'; }
   function expenseIcon(category) { return category === 'Kesehatan' || category === 'Obat' ? 'stethoscope' : category === 'Perawatan' ? 'barn' : 'leaf'; }
@@ -225,6 +240,17 @@
     const value = new Date(`${date}T12:00:00`);
     value.setDate(value.getDate() + days);
     return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`;
+  }
+  function calvingEstimate(inseminationDate) {
+    if (!inseminationDate) return null;
+    const expectedDate = addDaysToDate(inseminationDate, 283);
+    return {
+      expectedDate,
+      earliestDate: addDaysToDate(inseminationDate, 279),
+      latestDate: addDaysToDate(inseminationDate, 287),
+      preparationStart: addDaysToDate(expectedDate, -28),
+      preparationEnd: addDaysToDate(expectedDate, -14),
+    };
   }
   function reproductiveCowLabel(cow) {
     const nextHeatCheck = heatCheckRecommendations(cow)[0];
@@ -268,12 +294,13 @@
   ]);
   function filterFinanceRows(rows) {
     const query = expenseSearch.trim().toLocaleLowerCase('id');
+    const newestFirst = (items) => items.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     let start;
     let end;
     if (expenseRange === 'Semua') {
-      return rows.filter((row) => !query || row.name.toLocaleLowerCase('id').includes(query));
+      return newestFirst(rows.filter((row) => !query || row.name.toLocaleLowerCase('id').includes(query)));
     } else if (expenseRange === 'Hari ini') {
       start = end = today;
     } else if (expenseRange === 'Minggu ini') {
@@ -293,8 +320,8 @@
     }
     const startKey = start ? `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}` : '';
     const endKey = end ? `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, '0')}-${String(end.getDate()).padStart(2, '0')}` : '9999-12-31';
-    return rows.filter((row) => row.date >= startKey && row.date <= endKey)
-      .filter((row) => !query || row.name.toLocaleLowerCase('id').includes(query));
+    return newestFirst(rows.filter((row) => row.date >= startKey && row.date <= endKey)
+      .filter((row) => !query || row.name.toLocaleLowerCase('id').includes(query)));
   }
   let filteredExpenses = $derived.by(() => filterFinanceRows(expenses));
   let filteredIncomes = $derived.by(() => filterFinanceRows(incomes));
@@ -302,8 +329,9 @@
   let expenseTotal = $derived(filteredExpenses.reduce((total, expense) => total + Number(expense.amount || 0), 0));
   let incomeTotal = $derived(filteredRevenue.reduce((total, income) => total + Number(income.amount || 0), 0));
   let cashflowTotal = $derived(incomeTotal - expenseTotal);
+  let totalCapital = $derived(incomes.filter((income) => income.category === 'Modal').reduce((total, income) => total + Number(income.amount || 0), 0));
   let availableBalance = $derived(
-    incomes.filter((income) => income.category === 'Modal').reduce((total, income) => total + Number(income.amount || 0), 0)
+    totalCapital
     + incomes.filter((income) => income.category !== 'Modal').reduce((total, income) => total + Number(income.amount || 0), 0)
     - expenses.reduce((total, expense) => total + Number(expense.amount || 0), 0),
   );
@@ -361,19 +389,20 @@
     event.preventDefault();
     const existing = cows.find((cow) => cow.id === editingCowId);
     const record = existing
-      ? { ...existing, name: cowName.trim(), breed: cowBreed, status: cowStatus, pregnant: cowStatus === 'Hamil', birthDate: cowBirthDate || null }
-      : { id: `cow-${crypto.randomUUID()}`, name: cowName.trim(), code: String(Date.now()).slice(-4), breed: cowBreed, status: cowStatus, pregnant: cowStatus === 'Hamil', birthDate: cowBirthDate || null };
+      ? { ...existing, name: cowName.trim(), breed: cowBreed, category: cowCategory, status: cowStatus, pregnant: cowStatus === 'Hamil', birthDate: cowBirthDate || null }
+      : { id: `cow-${crypto.randomUUID()}`, name: cowName.trim(), code: String(Date.now()).slice(-4), breed: cowBreed, category: cowCategory, status: cowStatus, pregnant: cowStatus === 'Hamil', birthDate: cowBirthDate || null };
+    record.motherId = cowMotherId || null;
     await saveRecord('cows', record);
     cows = existing ? cows.map((cow) => cow.id === record.id ? record : cow) : [...cows, record];
-    editingCowId = null; cowName = ''; cowBreed = 'PO'; cowStatus = 'Sehat'; cowBirthDate = ''; showCowForm = false;
+    editingCowId = null; cowName = ''; cowBreed = 'PO'; cowCategory = ''; cowStatus = 'Sehat'; cowBirthDate = ''; cowMotherId = ''; showCowForm = false;
   }
 
   function editCow(cow) {
-    editingCowId = cow.id; cowName = cow.name; cowBreed = cow.breed || 'PO'; cowStatus = cow.status || 'Sehat'; cowBirthDate = cow.birthDate || ''; showCowForm = true;
+    editingCowId = cow.id; cowName = cow.name; cowBreed = cow.breed || 'PO'; cowCategory = cow.category || ''; cowStatus = cow.status || 'Sehat'; cowBirthDate = cow.birthDate || ''; cowMotherId = cow.motherId || ''; showCowForm = true;
   }
 
   function startNewCow() {
-    editingCowId = null; cowName = ''; cowBreed = 'PO'; cowStatus = 'Sehat'; cowBirthDate = ''; showCowForm = !showCowForm;
+    editingCowId = null; cowName = ''; cowBreed = 'PO'; cowCategory = ''; cowStatus = 'Sehat'; cowBirthDate = ''; cowMotherId = ''; showCowForm = !showCowForm;
   }
 
   async function updateCowStatus(cow, status) {
@@ -766,9 +795,9 @@
     {:else if activeTab === 'sapi'}
       <section class="page-heading"><p class="eyebrow">DATA PETERNAKAN</p><h1>Daftar sapi</h1><p class="subheading">Kelola dan pantau kondisi ternakmu.</p></section>
       <div class="section-heading cow-title-row"><div class="cow-summary"><div><span class="eyebrow">TOTAL TERNAK</span><strong>{cows.length} <small>ekor</small></strong></div><span class="summary-cow">{@render Icon('cow', 32)}</span></div><button class="round-action" aria-label="Tambah sapi" onclick={startNewCow}>{@render Icon('plus', 18)}</button></div>
-      {#if showCowForm}<form class="record-form" onsubmit={addCow}><label>Nama sapi<input bind:value={cowName} placeholder="Contoh: Putri" required /></label><div class="form-grid"><label>Jenis sapi<select bind:value={cowBreed}><option>PO</option><option>Limousin</option><option>Simmental</option><option>Brahman</option><option>Angus</option><option>Lainnya</option></select></label><label>Kondisi<select bind:value={cowStatus}><option>Sehat</option><option>Sakit</option><option>Menyusui</option><option>Hamil</option></select></label></div><label>Tanggal lahir <span class="optional-label">(opsional)</span><input type="date" bind:value={cowBirthDate} /></label>{#if editingCowId}<button class="form-cancel" type="button" onclick={() => { editingCowId = null; showCowForm = false; }}>Batal</button>{/if}<button class="form-submit" type="submit">{editingCowId ? 'Simpan perubahan' : 'Simpan sapi'}</button></form>{/if}
+      {#if showCowForm}<form class="record-form" onsubmit={addCow}><label>Nama sapi<input bind:value={cowName} placeholder="Contoh: Putri" required /></label><div class="form-grid"><label>Jenis sapi<select bind:value={cowBreed}><option>PO</option><option>Limousin</option><option>Simmental</option><option>Brahman</option><option>Angus</option><option>Lainnya</option></select></label><label>Kondisi<select bind:value={cowStatus}><option>Sehat</option><option>Sakit</option><option>Menyusui</option><option>Hamil</option></select></label></div><label>Kategori ternak <span class="optional-label">(opsional)</span><select bind:value={cowCategory}><option value="">Pilih kategori</option><option>Pedet</option><option>Dere</option><option>Dara</option><option>Calon induk</option><option>Indukan</option><option>Calon pejantan</option><option>Pejantan muda</option><option>Pejantan</option><option>Bakalan</option><option>Afkir</option></select></label><label>Tanggal lahir <span class="optional-label">(opsional)</span><input type="date" bind:value={cowBirthDate} /></label><label>Induk <span class="optional-label">(opsional)</span><select bind:value={cowMotherId}><option value="">Belum diketahui</option>{#each cows.filter((candidate) => candidate.id !== editingCowId) as candidate (candidate.id)}<option value={candidate.id}>{candidate.name} · #{candidate.code}</option>{/each}</select></label>{#if editingCowId}<button class="form-cancel" type="button" onclick={() => { editingCowId = null; showCowForm = false; }}>Batal</button>{/if}<button class="form-submit" type="submit">{editingCowId ? 'Simpan perubahan' : 'Simpan sapi'}</button></form>{/if}
       <div class="filter-row"><button class="filter-pill" class:selected={cowFilter === 'Semua'} onclick={() => cowFilter = 'Semua'}>Semua <span>{cows.length}</span></button><button class="filter-pill" class:selected={cowFilter === 'Sehat'} onclick={() => cowFilter = 'Sehat'}>Sehat <span>{cows.filter((cow) => cow.status === 'Sehat').length}</span></button><button class="filter-pill" class:selected={cowFilter === 'Sakit'} onclick={() => cowFilter = 'Sakit'}>Sakit <span>{cows.filter((cow) => cow.status === 'Sakit').length}</span></button><button class="filter-pill" class:selected={cowFilter === 'Menyusui'} onclick={() => cowFilter = 'Menyusui'}>Menyusui <span>{cows.filter((cow) => cow.status === 'Menyusui').length}</span></button><button class="filter-pill" class:selected={cowFilter === 'Hamil'} onclick={() => cowFilter = 'Hamil'}>Hamil <span>{cows.filter((cow) => cow.status === 'Hamil' || cow.pregnant).length}</span></button></div>
-      <div class="cow-list">{#each filteredCows as cow (cow.id)}<article class="cow-card"><span class="cow-avatar {cowTone(cow)}">{cow.name.slice(0, 1).toUpperCase()}</span><div class="cow-info"><h3><button class="cow-name-link" onclick={() => { activeTab = 'kalender'; openReproductionDetails(cow); }}>{cow.name}</button></h3><p>#{cow.code} · {cow.breed}</p>{#if cow.birthDate}<p class="cow-birth">Lahir: {localDate(cow.birthDate)}</p>{/if}{#if cow.calvingDate}<p class="cow-birth">Melahirkan: {localDate(cow.calvingDate)}</p>{/if}{#if weaningDateForCow(cow)}<p class="cow-pregnancy-likelihood">Sapih: {localDate(weaningDateForCow(cow))}</p>{/if}{#if pregnancyLikelihoodForCow(cow)}<p class="cow-pregnancy-likelihood">Perkiraan bunting: {pregnancyLikelihoodForCow(cow).percent}%</p>{/if}</div><button class="edit-record" aria-label="Edit data sapi {cow.name}" onclick={() => editCow(cow)}>Edit</button><select class="status-select" aria-label="Ubah status sapi" value={cow.status === 'Hamil' || cow.pregnant ? 'Hamil' : cow.status} onchange={(event) => updateCowStatus(cow, event.currentTarget.value)}><option>Sehat</option><option>Sakit</option><option>Menyusui</option><option>Hamil</option></select><button class="delete-record" aria-label="Hapus sapi" onclick={() => deleteCow(cow)}>×</button></article>{/each}</div>
+      <div class="cow-list">{#each filteredCows as cow (cow.id)}<article class="cow-card"><span class="cow-avatar {cowTone(cow)}">{cow.name.slice(0, 1).toUpperCase()}</span><div class="cow-info"><h3><button class="cow-name-link" onclick={() => { activeTab = 'kalender'; openReproductionDetails(cow); }}>{cow.name}</button></h3><p>#{cow.code} · {cow.breed}{#if cow.category} · {cow.category}{/if}</p>{#if motherName(cow)}<p>Induk: {motherName(cow)}</p>{/if}{#if cow.birthDate}<p class="cow-birth">Lahir: {localDate(cow.birthDate)}</p><p class="cow-age">Umur: {cowAge(cow.birthDate)}</p>{/if}{#if cow.calvingDate}<p class="cow-birth">Melahirkan: {localDate(cow.calvingDate)}</p>{/if}{#if weaningDateForCow(cow)}<p class="cow-pregnancy-likelihood">Sapih: {localDate(weaningDateForCow(cow))}</p>{/if}{#if pregnancyLikelihoodForCow(cow)}<p class="cow-pregnancy-likelihood">Perkiraan bunting: {pregnancyLikelihoodForCow(cow).percent}%</p>{/if}</div><button class="edit-record" aria-label="Edit data sapi {cow.name}" onclick={() => editCow(cow)}>Edit</button><select class="status-select" aria-label="Ubah status sapi" value={cow.status === 'Hamil' || cow.pregnant ? 'Hamil' : cow.status} onchange={(event) => updateCowStatus(cow, event.currentTarget.value)}><option>Sehat</option><option>Sakit</option><option>Menyusui</option><option>Hamil</option></select><button class="delete-record" aria-label="Hapus sapi" onclick={() => deleteCow(cow)}>×</button></article>{/each}</div>
       {#if filteredCows.length === 0}<p class="empty-record">Belum ada sapi pada kategori ini.</p>{/if}
     {:else if activeTab === 'pengeluaran'}
       <section class="page-heading"><p class="eyebrow">KEUANGAN PETERNAKAN</p><h1>Keuangan kandang</h1><p class="subheading">Catat pemasukan dan pengeluaran kandang.</p></section>
@@ -779,7 +808,7 @@
         <div class="custom-range"><label>Dari<input type="date" bind:value={customStart} /></label><span>sampai</span><label>Sampai<input type="date" bind:value={customEnd} /></label></div>
       {/if}
       <label class="expense-search"><span class="sr-only">Cari nama transaksi</span><input type="search" bind:value={expenseSearch} placeholder="Cari nama pemasukan atau pengeluaran" /></label>
-      <div class="cashflow-grid"><article class="cashflow-card income"><span>Total pemasukan</span><strong>{money(incomeTotal)}</strong></article><article class="cashflow-card outgoing"><span>Total pengeluaran</span><strong>{money(expenseTotal)}</strong></article><article class="cashflow-card balance"><span>Arus kas bersih · sesuai filter</span><strong>{money(cashflowTotal)}</strong></article><article class="cashflow-card available"><span>Saldo tersisa · semua waktu</span><strong>{money(availableBalance)}</strong></article></div>
+      <div class="cashflow-grid"><article class="cashflow-card income"><span>Total pemasukan</span><strong>{money(incomeTotal)}</strong></article><article class="cashflow-card outgoing"><span>Total pengeluaran</span><strong>{money(expenseTotal)}</strong></article><article class="cashflow-card balance"><span>Arus kas bersih · sesuai filter</span><strong>{money(cashflowTotal)}</strong></article><article class="cashflow-card available"><div class="available-balance-values"><div><span>Total modal</span><strong>{money(totalCapital)}</strong></div><div><span>Sisa sekarang</span><strong>{money(availableBalance)}</strong></div></div></article></div>
       <div class="finance-history-tabs" role="tablist" aria-label="Riwayat keuangan">
         <button id="expenses-tab" role="tab" aria-selected={financeHistoryTab === 'pengeluaran'} class:chosen={financeHistoryTab === 'pengeluaran'} onclick={() => financeHistoryTab = 'pengeluaran'}>Pengeluaran <span>{filteredExpenses.length}</span></button>
         <button id="incomes-tab" role="tab" aria-selected={financeHistoryTab === 'pemasukan'} class:chosen={financeHistoryTab === 'pemasukan'} onclick={() => financeHistoryTab = 'pemasukan'}>Pemasukan <span>{filteredIncomes.length}</span></button>
@@ -805,9 +834,20 @@ Obat cacing,Obat,85000,2026-10-20,Untuk sapi Lestari</pre><button class="sample-
       <section class="page-heading"><p class="eyebrow">REPRODUKSI SAPI</p><h1>Kalender birahi</h1><p class="subheading">Catat birahi, IB, cek kehamilan, dan obat cacing.</p></section>
       {#if selectedCalendarCow}
         <button class="calendar-back" onclick={() => selectedCalendarCowId = null}>‹ Kembali ke daftar sapi</button>
-        <section class="repro-profile"><span class="cow-avatar {cowTone(selectedCalendarCow)}">{selectedCalendarCow.name.slice(0, 1).toUpperCase()}</span><div><h2>{selectedCalendarCow.name}</h2><p>#{selectedCalendarCow.code} · {selectedCalendarCow.breed}{selectedCalendarCow.birthDate ? ` · Lahir ${localDate(selectedCalendarCow.birthDate)}` : ''}</p></div></section>
+        <section class="repro-profile"><span class="cow-avatar {cowTone(selectedCalendarCow)}">{selectedCalendarCow.name.slice(0, 1).toUpperCase()}</span><div><h2>{selectedCalendarCow.name}</h2><p>#{selectedCalendarCow.code} · {selectedCalendarCow.breed}{#if selectedCalendarCow.category} · {selectedCalendarCow.category}{/if}</p>{#if selectedCalendarCow.birthDate}<p>Lahir: {localDate(selectedCalendarCow.birthDate)}</p><p class="cow-age">Umur: {cowAge(selectedCalendarCow.birthDate)}</p>{/if}</div></section>
         <div class="repro-recommendations">
           {#if selectedCalendarCow.inseminationDate}<article class="recommendation-card insemination"><span class="recommendation-icon">{@render Icon('spark', 20)}</span><div><strong>Inseminasi buatan (IB)</strong><p>Dilakukan {localDate(selectedCalendarCow.inseminationDate)}</p></div></article>{/if}
+          {#if selectedCalendarCow.inseminationDate && !selectedCalendarCow.calvingDate && selectedCalendarCow.pregnancyResult !== 'Tidak hamil'}
+            {@const estimate = calvingEstimate(selectedCalendarCow.inseminationDate)}
+            <article class="recommendation-card calving-estimate"><span class="recommendation-icon">{@render Icon('baby', 20)}</span><div>
+              <strong>Perkiraan kelahiran</strong>
+              <p>{selectedCalendarCow.pregnancyResult === 'Hamil' || selectedCalendarCow.pregnant || selectedCalendarCow.status === 'Hamil' ? 'Hasil cek mencatat sapi bunting.' : 'Jika IB berhasil dan hasil cek menunjukkan bunting:'}</p>
+              <p>Perkiraan lahir: <b>{localDate(estimate.expectedDate)}</b> (sekitar 283 hari setelah IB).</p>
+              <p>Rentang kelahiran umum: {localDate(estimate.earliestDate)}–{localDate(estimate.latestDate)}.</p>
+              <p>Persiapan kandang dan perlengkapan: <b>{localDate(estimate.preparationStart)}–{localDate(estimate.preparationEnd)}</b> (2–4 minggu sebelum perkiraan).</p>
+              <small>Perkiraan dapat berbeda menurut sapi dan jenis kelamin pedet.</small>
+            </div></article>
+          {/if}
           {#if weaningDateForCow(selectedCalendarCow)}<article class="recommendation-card weaning"><span class="recommendation-icon">{@render Icon('cow', 20)}</span><div><strong>Jadwal sapih</strong><p>{localDate(weaningDateForCow(selectedCalendarCow))} · lima bulan setelah melahirkan</p></div></article>{/if}
           {#if pregnancyLikelihood}<article class="recommendation-card likelihood"><span class="recommendation-icon">{@render Icon('heart', 20)}</span><div><strong>Perkiraan kemungkinan bunting: {pregnancyLikelihood.percent}%</strong><p>{pregnancyLikelihood.cycles === 1 ? 'Satu siklus (sekitar 21 hari) terpantau tanpa birahi.' : 'Dua siklus atau lebih terpantau tanpa birahi.'} Ini perkiraan dari catatan tidak kembali birahi, bukan diagnosis.</p><a href="https://www.nadis.org.uk/disease-a-z/cattle/fertility-in-dairy-herds/part-5-pregnancy-diagnosis/" target="_blank" rel="noreferrer">Tentang keterbatasan perkiraan</a></div></article>{/if}
           {#if pregnancyCheckRecommendation}<article class="recommendation-card pregnancy"><span class="recommendation-icon">{@render Icon('baby', 20)}</span><div><strong>Cek kehamilan</strong><p>Rekomendasi sekitar {localDate(pregnancyCheckRecommendation)}, 60 hari setelah IB.</p></div></article>{/if}
@@ -829,7 +869,7 @@ Obat cacing,Obat,85000,2026-10-20,Untuk sapi Lestari</pre><button class="sample-
       {:else}
         <div class="repro-guidance"><strong>Perkiraan siklus birahi</strong><p>Siklus sapi rata-rata 21 hari dan dapat berkisar 17–24 hari. Tanggal di halaman ini adalah pengingat untuk dipantau, bukan kepastian birahi.</p></div>
         {#if cows.length === 0}<p class="empty-record">Tambahkan data sapi terlebih dahulu untuk membuat kalender birahi.</p>{/if}
-        <div class="calendar-cow-list">{#each cows as cow (cow.id)}<button class="calendar-cow-card" onclick={() => openReproductionDetails(cow)}><span class="cow-avatar {cowTone(cow)}">{cow.name.slice(0, 1).toUpperCase()}</span><span class="calendar-cow-info"><strong>{cow.name}</strong><small>#{cow.code} · {cow.breed}</small>{#if cow.inseminationDate}<small>IB: {localDate(cow.inseminationDate)}</small>{/if}{#if cow.calvingDate}<small>Melahirkan: {localDate(cow.calvingDate)}</small>{/if}{#if weaningDateForCow(cow)}<small class="cow-pregnancy-likelihood">Jadwal sapih: {localDate(weaningDateForCow(cow))}</small>{/if}<small>{reproductiveCowLabel(cow)}</small>{#if pregnancyLikelihoodForCow(cow)}<small class="cow-pregnancy-likelihood">Perkiraan bunting: {pregnancyLikelihoodForCow(cow).percent}%</small>{/if}</span>{@render Icon('chevron', 19)}</button>{/each}</div>
+        <div class="calendar-cow-list">{#each cows as cow (cow.id)}<button class="calendar-cow-card" onclick={() => openReproductionDetails(cow)}><span class="cow-avatar {cowTone(cow)}">{cow.name.slice(0, 1).toUpperCase()}</span><span class="calendar-cow-info"><strong>{cow.name}</strong><small>#{cow.code} · {cow.breed}{#if cow.category} · {cow.category}{/if}</small>{#if cow.birthDate}<small class="cow-age">Umur: {cowAge(cow.birthDate)}</small>{/if}{#if cow.inseminationDate}<small>IB: {localDate(cow.inseminationDate)}</small>{/if}{#if cow.calvingDate}<small>Melahirkan: {localDate(cow.calvingDate)}</small>{/if}{#if weaningDateForCow(cow)}<small class="cow-pregnancy-likelihood">Jadwal sapih: {localDate(weaningDateForCow(cow))}</small>{/if}<small>{reproductiveCowLabel(cow)}</small>{#if pregnancyLikelihoodForCow(cow)}<small class="cow-pregnancy-likelihood">Perkiraan bunting: {pregnancyLikelihoodForCow(cow).percent}%</small>{/if}</span>{@render Icon('chevron', 19)}</button>{/each}</div>
       {/if}
     {/if}
   </main>
