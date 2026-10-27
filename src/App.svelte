@@ -137,6 +137,20 @@
         request.onsuccess = () => resolve(request.result);
         request.onerror = () => reject(request.error);
       });
+      const fallbackRows = JSON.parse(localStorage.getItem(`catatan-peternak-${storeName}`) || 'null');
+      if (Array.isArray(fallbackRows) && fallbackRows.length) {
+        const merged = new Map(rows.map((row) => [row.id, row]));
+        for (const row of fallbackRows) merged.set(row.id, row);
+        const mergedRows = [...merged.values()];
+        await new Promise((resolve, reject) => {
+          const transaction = db.transaction(storeName, 'readwrite');
+          for (const row of mergedRows) transaction.objectStore(storeName).put(row);
+          transaction.oncomplete = resolve;
+          transaction.onerror = () => reject(transaction.error);
+        });
+        db.close();
+        return mergedRows;
+      }
       if (rows.length) { db.close(); return rows; }
       await new Promise((resolve, reject) => {
         const transaction = db.transaction(storeName, 'readwrite');
@@ -160,15 +174,22 @@
     try {
       const db = await openProfileDB();
       await new Promise((resolve, reject) => {
-        const request = db.transaction(storeName, 'readwrite').objectStore(storeName).put(record);
-        request.onsuccess = resolve;
-        request.onerror = () => reject(request.error);
+        const transaction = db.transaction(storeName, 'readwrite');
+        transaction.objectStore(storeName).put(record);
+        transaction.oncomplete = resolve;
+        transaction.onerror = () => reject(transaction.error);
+        transaction.onabort = () => reject(transaction.error || new Error('Penyimpanan dibatalkan'));
       });
       db.close();
     } catch {
       const rows = JSON.parse(localStorage.getItem(`catatan-peternak-${storeName}`) || '[]');
       localStorage.setItem(`catatan-peternak-${storeName}`, JSON.stringify([...rows.filter((row) => row.id !== record.id), record]));
+      return;
     }
+    // Keep a durable fallback copy too; older browsers or storage policies may
+    // report IndexedDB writes that are not available on the next page load.
+    const rows = JSON.parse(localStorage.getItem(`catatan-peternak-${storeName}`) || '[]');
+    localStorage.setItem(`catatan-peternak-${storeName}`, JSON.stringify([...rows.filter((row) => row.id !== record.id), record]));
   }
 
   async function removeRecord(storeName, id) {
@@ -287,7 +308,7 @@
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
     const dates = [];
-    for (let cycle = 1; cycle <= 20; cycle += 1) {
+    for (let cycle = 1; cycle <= 10; cycle += 1) {
       const date = addDaysToDate(anchor, cycle * 21);
       if (pregnancyCheckDate && date >= pregnancyCheckDate) break;
       dates.push(date);
@@ -456,16 +477,41 @@
   async function saveReproductionDetails(event) {
     event.preventDefault();
     if (!selectedCalendarCow) return;
+    const heatDateChanged = (selectedCalendarCow.heatDate || '') !== (reproDraft.heatDate || '');
+    const invalidatePreviousInsemination = heatDateChanged && Boolean(selectedCalendarCow.inseminationDate);
+    const ibHistory = [...(selectedCalendarCow.ibHistory || [])];
+    if (invalidatePreviousInsemination && !ibHistory.some((entry) => entry.date === selectedCalendarCow.inseminationDate)) {
+      ibHistory.push({ date: selectedCalendarCow.inseminationDate, result: selectedCalendarCow.pregnancyResult || 'Belum diperiksa' });
+    }
     let updated = {
       ...selectedCalendarCow,
       ...reproDraft,
+      ibHistory,
+      ...(invalidatePreviousInsemination ? {
+        inseminationDate: '',
+        pregnancyResult: 'Belum diperiksa',
+        pregnant: false,
+        status: selectedCalendarCow.status === 'Hamil' ? 'Sehat' : selectedCalendarCow.status,
+      } : {}),
       nextDewormingDate: reproDraft.lastDewormingDate ? addMonthsToDate(reproDraft.lastDewormingDate, 2) : '',
     };
-    if (reproDraft.pregnancyResult === 'Hamil') updated = { ...updated, status: 'Hamil', pregnant: true };
-    else if (reproDraft.pregnancyResult === 'Tidak hamil' && (updated.status === 'Hamil' || updated.pregnant)) updated = { ...updated, status: 'Sehat', pregnant: false };
-    await saveRecord('cows', updated);
-    cows = cows.map((cow) => cow.id === updated.id ? updated : cow);
-    reproMessage = 'Jadwal dan catatan sapi berhasil disimpan.';
+    if (!invalidatePreviousInsemination && reproDraft.pregnancyResult === 'Hamil') updated = { ...updated, status: 'Hamil', pregnant: true };
+    else if (!invalidatePreviousInsemination && reproDraft.pregnancyResult === 'Tidak hamil' && (updated.status === 'Hamil' || updated.pregnant)) updated = { ...updated, status: 'Sehat', pregnant: false };
+    try {
+      await saveRecord('cows', updated);
+      cows = cows.map((cow) => cow.id === updated.id ? updated : cow);
+      reproDraft = {
+        ...reproDraft,
+        heatDate: updated.heatDate || '',
+        inseminationDate: updated.inseminationDate || '',
+        pregnancyResult: updated.pregnancyResult || 'Belum diperiksa',
+      };
+      reproMessage = invalidatePreviousInsemination
+        ? 'Tanggal birahi diperbarui. IB sebelumnya tetap tersimpan di riwayat; silakan catat IB baru jika dilakukan.'
+        : 'Tanggal birahi terakhir dan catatan sapi berhasil disimpan.';
+    } catch {
+      reproMessage = 'Gagal menyimpan catatan. Periksa ruang penyimpanan browser lalu coba lagi.';
+    }
   }
 
   async function toggleHeatCheck(date) {
@@ -474,6 +520,19 @@
     if (checkedDates.has(date)) checkedDates.delete(date);
     else checkedDates.add(date);
     const updated = { ...selectedCalendarCow, heatChecks: [...checkedDates] };
+    await saveRecord('cows', updated);
+    cows = cows.map((cow) => cow.id === updated.id ? updated : cow);
+  }
+
+  async function toggleHeatObservation(date, observation) {
+    if (!selectedCalendarCow) return;
+    const byDate = { ...(selectedCalendarCow.heatObservationsByDate || {}) };
+    const previous = byDate[date] || (date === selectedCalendarCow.heatDate ? selectedCalendarCow.heatObservations || [] : []);
+    const observations = new Set(previous);
+    if (observations.has(observation)) observations.delete(observation);
+    else observations.add(observation);
+    byDate[date] = [...observations];
+    const updated = { ...selectedCalendarCow, heatObservationsByDate: byDate };
     await saveRecord('cows', updated);
     cows = cows.map((cow) => cow.id === updated.id ? updated : cow);
   }
@@ -861,6 +920,7 @@ Obat cacing,Obat,85000,2026-10-20,Untuk sapi Lestari</pre><button class="sample-
         <section class="repro-profile"><span class="cow-avatar {cowTone(selectedCalendarCow)}">{selectedCalendarCow.name.slice(0, 1).toUpperCase()}</span><div><h2>{selectedCalendarCow.name}</h2><p>#{selectedCalendarCow.code} · {normalizeCowBreed(selectedCalendarCow.breed)}{#if selectedCalendarCow.category} · {selectedCalendarCow.category}{/if}</p>{#if selectedCalendarCow.birthDate}<p>Lahir: {localDate(selectedCalendarCow.birthDate)}</p><p class="cow-age">Umur: {cowAge(selectedCalendarCow.birthDate)}</p>{/if}</div></section>
         <div class="repro-recommendations">
           {#if selectedCalendarCow.inseminationDate}<article class="recommendation-card insemination"><span class="recommendation-icon">{@render Icon('spark', 20)}</span><div><strong>Inseminasi buatan (IB)</strong><p>Dilakukan {localDate(selectedCalendarCow.inseminationDate)}</p></div></article>{/if}
+          {#if selectedCalendarCow.ibHistory?.length}<article class="recommendation-card insemination"><span class="recommendation-icon">{@render Icon('spark', 20)}</span><div><strong>Riwayat IB</strong>{#each [...selectedCalendarCow.ibHistory].reverse() as entry}<p>{localDate(entry.date)} · {entry.result || 'Belum diperiksa'}</p>{/each}</div></article>{/if}
           {#if selectedCalendarCow.inseminationDate && !selectedCalendarCow.calvingDate && selectedCalendarCow.pregnancyResult !== 'Tidak hamil'}
             {@const estimate = calvingEstimate(selectedCalendarCow.inseminationDate)}
             <article class="recommendation-card calving-estimate"><span class="recommendation-icon">{@render Icon('baby', 20)}</span><div>
@@ -875,7 +935,8 @@ Obat cacing,Obat,85000,2026-10-20,Untuk sapi Lestari</pre><button class="sample-
           {#if weaningDateForCow(selectedCalendarCow)}<article class="recommendation-card weaning"><span class="recommendation-icon">{@render Icon('cow', 20)}</span><div><strong>Jadwal sapih</strong><p>{localDate(weaningDateForCow(selectedCalendarCow))} · lima bulan setelah melahirkan</p></div></article>{/if}
           {#if pregnancyLikelihood}<article class="recommendation-card likelihood"><span class="recommendation-icon">{@render Icon('heart', 20)}</span><div><strong>Perkiraan kemungkinan bunting: {pregnancyLikelihood.percent}%</strong><p>{pregnancyLikelihood.cycles === 1 ? 'Satu siklus (sekitar 21 hari) terpantau tanpa birahi.' : 'Dua siklus atau lebih terpantau tanpa birahi.'} Ini perkiraan dari catatan tidak kembali birahi, bukan diagnosis.</p><a href="https://www.nadis.org.uk/disease-a-z/cattle/fertility-in-dairy-herds/part-5-pregnancy-diagnosis/" target="_blank" rel="noreferrer">Tentang keterbatasan perkiraan</a></div></article>{/if}
           {#if pregnancyCheckRecommendation}<article class="recommendation-card pregnancy"><span class="recommendation-icon">{@render Icon('baby', 20)}</span><div><strong>Cek kehamilan</strong><p>Rekomendasi sekitar {localDate(pregnancyCheckRecommendation)}, 60 hari setelah IB.</p></div></article>{/if}
-          {#each heatCheckRecommendations(selectedCalendarCow) as heatDate}<article class="recommendation-card heat"><span class="recommendation-icon">{@render Icon('spark', 20)}</span><div class="heat-check-copy"><strong>{heatDate < todayKey() ? 'Pengecekan birahi terlewat' : 'Pantau birahi · siklus 21 hari'}</strong><p>Cek birahi {heatDate < todayKey() ? 'sejak' : 'sekitar'} {localDate(heatDate)}. Siklus dapat bervariasi 17–24 hari.</p><label class="heat-check-toggle" class:disabled={heatDate > todayKey()}><input type="checkbox" disabled={heatDate > todayKey()} checked={selectedCalendarCow.heatChecks?.includes(heatDate) || false} onchange={() => toggleHeatCheck(heatDate)} /> {heatDate > todayKey() ? 'Belum waktunya dicek' : 'Sudah dipantau, birahi tidak terlihat'}</label></div></article>{/each}
+          {#if selectedCalendarCow.heatDate}<details class="heat-cycle"><summary><span>Birahi terakhir</span><strong>{localDate(selectedCalendarCow.heatDate)}</strong></summary><div class="heat-cycle-content"><p>Tanda yang teramati</p><div class="heat-observation-list">{#each ['Menunggang', 'Teriak-teriak', 'Keluar lendir', 'Vulva merah dan bengkak'] as observation}<label><input type="checkbox" checked={(selectedCalendarCow.heatObservationsByDate?.[selectedCalendarCow.heatDate] || selectedCalendarCow.heatObservations || []).includes(observation)} onchange={() => toggleHeatObservation(selectedCalendarCow.heatDate, observation)} />{observation}</label>{/each}</div></div></details>{/if}
+          {#each heatCheckRecommendations(selectedCalendarCow) as heatDate}<details class="heat-cycle"><summary><span>{heatDate < todayKey() ? 'Pengecekan birahi terlewat' : 'Pantau birahi · siklus 21 hari'}</span><strong>{localDate(heatDate)}</strong></summary><div class="heat-cycle-content"><p>{heatDate < todayKey() ? 'Pengecekan sejak' : 'Perkiraan birahi sekitar'} {localDate(heatDate)}. Siklus dapat bervariasi 17–24 hari.</p><label class="heat-check-toggle" class:disabled={heatDate > todayKey()}><input type="checkbox" disabled={heatDate > todayKey()} checked={selectedCalendarCow.heatChecks?.includes(heatDate) || false} onchange={() => toggleHeatCheck(heatDate)} /> {heatDate > todayKey() ? 'Belum waktunya dicek' : 'Sudah dipantau, birahi tidak terlihat'}</label><p>Tanda yang teramati</p><div class="heat-observation-list">{#each ['Menunggang', 'Teriak-teriak', 'Keluar lendir', 'Vulva merah dan bengkak'] as observation}<label class:disabled={heatDate > todayKey()}><input type="checkbox" disabled={heatDate > todayKey()} checked={selectedCalendarCow.heatObservationsByDate?.[heatDate]?.includes(observation) || false} onchange={() => toggleHeatObservation(heatDate, observation)} />{observation}</label>{/each}</div></div></details>{/each}
           {#if selectedCalendarCow.nextDewormingDate}<article class="recommendation-card deworm"><span class="recommendation-icon">{@render Icon('stethoscope', 20)}</span><div><strong>Jadwal obat cacing</strong><p>{localDate(selectedCalendarCow.nextDewormingDate)}</p></div></article>{/if}
         </div>
         <form class="record-form repro-form" onsubmit={saveReproductionDetails}>

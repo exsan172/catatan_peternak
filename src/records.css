@@ -154,3 +154,15 @@
 .cow-avatar,.cow-avatar.mint,.cow-avatar.peach,.cow-avatar.lilac,.status-pill.mint,.status-pill.peach,.status-pill.lilac,.schedule-icon.sage,.schedule-icon.mint,.schedule-icon.peach{background:#e8efff;color:#3468c5}
 .schedule-open,.calendar-cow-card>svg{color:#3468c5}
 .delete-record:hover{background:#e8efff;color:#3468c5}
+.heat-observation-list{display:grid;gap:8px;margin-top:10px}
+.heat-observation-list label{display:flex;align-items:center;gap:8px;color:#46566a;font-size:12px;cursor:pointer}
+.heat-observation-list input{width:16px;height:16px;accent-color:#397a52}
+.heat-cycle{border:1px solid #e5ebdf;border-radius:12px;background:#fff;overflow:hidden}
+.heat-cycle summary{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:13px 14px;color:#344638;font-size:12px;font-weight:650;cursor:pointer;list-style:none}
+.heat-cycle summary::-webkit-details-marker{display:none}
+.heat-cycle summary::after{content:'⌄';color:#718078;font-size:16px}
+.heat-cycle[open] summary::after{content:'⌃'}
+.heat-cycle summary strong{margin-left:auto;color:#607268;font-size:11px;font-weight:600;white-space:nowrap}
+.heat-cycle-content{padding:0 14px 14px;color:#718078;font-size:12px;line-height:1.5}
+.heat-cycle-content>p{margin:2px 0 8px}
+.heat-observation-list label.disabled{opacity:.48;cursor:not-allowed}
