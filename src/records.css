@@ -166,3 +166,7 @@
 .heat-cycle-content{padding:0 14px 14px;color:#718078;font-size:12px;line-height:1.5}
 .heat-cycle-content>p{margin:2px 0 8px}
 .heat-observation-list label.disabled{opacity:.48;cursor:not-allowed}
+.heat-cycle-action{margin-top:10px}
+.btn-heat-again{display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border:1px solid #f8c8c8;border-radius:9px;background:#fff5f5;color:#c02626;font:650 11px 'Inter',sans-serif;cursor:pointer;transition:all .15s ease}
+.btn-heat-again:hover{background:#fee2e2;border-color:#fca5a5}
+.btn-heat-again svg{flex:none;color:#c02626}
