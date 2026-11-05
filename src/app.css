@@ -31,3 +31,81 @@ button,.brand,.welcome-row h1,.page-heading h1,.section-heading h2,.stat-value,.
 .profile-details{display:grid;gap:12px;max-width:760px}.profile-detail-card{display:flex;align-items:center;gap:14px;padding:17px;background:#fff;border:1px solid #e2e8f2;border-radius:14px}.profile-detail-icon{display:grid;place-items:center;flex:none;width:42px;height:42px;border-radius:12px;background:#e9effb;color:#3468c5}.profile-detail-card p{margin:0 0 5px;color:#77869b;font-size:11px}.profile-detail-card strong{color:#24324a;font-size:14px}.profile-detail-card small{color:#77869b;font-size:11px;font-weight:500}
 .brand-mark{background:#e8efff;color:#3468c5}.avatar{background:#e8efff;color:#3468c5}.icon-button{color:#5876ad}.hero-card{background:#e7efff}.hero-kicker{color:#5277b7}.hero-copy h2{color:#23457d}.hero-copy p{color:#5e79a8}.hero-link,.text-link,.all-schedules,.round-action{color:#3468c5}.sun{background:#d3e1fb}.hill-back{background:#c2d4f4}.hill-front{background:#a9c1ed}.hero-cow{color:#496ea9}.grass{color:#7394ca}.stat-icon.sage,.expense-icon.sage,.expense-icon.mint{background:#e8efff;color:#3468c5}.expense-icon.peach,.expense-icon.lilac{background:#e8efff;color:#3468c5}.cashflow-card.income strong{color:#3468c5}.income-card,.income-card>strong{border-color:#e2e8f2;color:#3468c5}.tip-icon{color:#3468c5}.profile-detail-icon{color:#3468c5}
 .stat-icon.sage,.stat-icon.mint,.stat-icon.peach,.stat-icon.lilac{background:#e8efff;color:#3468c5}
+
+/* Dark theme follows the operating system unless the user chooses a theme. */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --ink: #f2f4f2;
+  --muted: #a0aaa2;
+  --line: #262a27;
+  --paper: #101211;
+  --bg: #000000;
+  color: var(--ink);
+  background: #000;
+}
+:root[data-theme='dark'] body,
+:root[data-theme='dark'] .app-shell,
+:root[data-theme='dark'] .setup-page { background: #000; color: var(--ink); }
+:root[data-theme='dark'] .topbar,
+:root[data-theme='dark'] .bottom-nav { background: rgba(10, 11, 10, .96); border-color: #242724; }
+:root[data-theme='dark'] .stat-card,
+:root[data-theme='dark'] .schedule-card,
+:root[data-theme='dark'] .cow-card,
+:root[data-theme='dark'] .expense-card,
+:root[data-theme='dark'] .record-form,
+:root[data-theme='dark'] .profile-detail-card,
+:root[data-theme='dark'] .backup-card,
+:root[data-theme='dark'] .repro-profile,
+:root[data-theme='dark'] .recommendation-card,
+:root[data-theme='dark'] .calendar-cow-card,
+:root[data-theme='dark'] .schedule-group-heading,
+:root[data-theme='dark'] .setup-card,
+:root[data-theme='dark'] .cashflow-card,
+:root[data-theme='dark'] .heat-cycle { background: #101211; border-color: #292e2a; }
+:root[data-theme='dark'] .welcome-row h1,
+:root[data-theme='dark'] .page-heading h1,
+:root[data-theme='dark'] .section-heading h2,
+:root[data-theme='dark'] .schedule-info h3,
+:root[data-theme='dark'] .cow-info h3,
+:root[data-theme='dark'] .expense-info h3,
+:root[data-theme='dark'] .repro-profile h2,
+:root[data-theme='dark'] .calendar-cow-info strong,
+:root[data-theme='dark'] .profile-detail-card strong,
+:root[data-theme='dark'] .confirm-modal h2 { color: #f2f4f2; }
+:root[data-theme='dark'] .subheading,
+:root[data-theme='dark'] .eyebrow,
+:root[data-theme='dark'] .schedule-kind,
+:root[data-theme='dark'] .schedule-time span,
+:root[data-theme='dark'] .cow-info p,
+:root[data-theme='dark'] .expense-info p,
+:root[data-theme='dark'] .profile-detail-card p,
+:root[data-theme='dark'] .schedule-group-count,
+:root[data-theme='dark'] .calendar-cow-info small { color: #9aa49c; }
+:root[data-theme='dark'] .record-form input,
+:root[data-theme='dark'] .record-form select,
+:root[data-theme='dark'] .setup-form input,
+:root[data-theme='dark'] .expense-search input,
+:root[data-theme='dark'] .cow-search-field input,
+:root[data-theme='dark'] .cow-directory-filters > select,
+:root[data-theme='dark'] .custom-range input,
+:root[data-theme='dark'] .status-select,
+:root[data-theme='dark'] .disease-actions select { background: #090a09; color: #f2f4f2; border-color: #343a35; }
+:root[data-theme='dark'] .setup-form label,
+:root[data-theme='dark'] .record-form label,
+:root[data-theme='dark'] .heat-cycle summary,
+:root[data-theme='dark'] .confirm-modal > p { color: #c1c9c2; }
+:root[data-theme='dark'] .hero-card,
+:root[data-theme='dark'] .cow-summary,
+:root[data-theme='dark'] .tip-banner,
+:root[data-theme='dark'] .cashflow-card.balance,
+:root[data-theme='dark'] .cashflow-card.available,
+:root[data-theme='dark'] .repro-guidance { background: #111713; border-color: #26352b; }
+:root[data-theme='dark'] .filter-pill,
+:root[data-theme='dark'] .round-action,
+:root[data-theme='dark'] .form-cancel,
+:root[data-theme='dark'] .confirm-modal,
+:root[data-theme='dark'] .custom-range,
+:root[data-theme='dark'] .expense-import-format pre { background: #101211; color: #d7ded8; border-color: #292e2a; }
+:root[data-theme='dark'] .theme-toggle { color: #e7c66b; }
+.theme-toggle{width:36px;height:36px;display:grid;place-items:center;border:1px solid #e2e8f2;border-radius:10px;background:transparent;color:#52617a;cursor:pointer}
+:root[data-theme='dark'] .theme-toggle{border-color:#343a35;background:#101211}

@@ -1,0 +1,155 @@
+:root[data-theme="dark"] {
+  --dark-surface: #101211;
+  --dark-raised: #171a18;
+  --dark-control: #1b1f1c;
+  --dark-border: #303631;
+  --dark-text: #edf1ed;
+  --dark-muted: #a4ada5;
+  --dark-accent: #8eb5ff;
+}
+
+:root[data-theme="dark"] .round-action,
+:root[data-theme="dark"] .filter-pill,
+:root[data-theme="dark"] .status-select,
+:root[data-theme="dark"] .import-trigger,
+:root[data-theme="dark"] .finance-add-button:last-child,
+:root[data-theme="dark"] .backup-actions button.secondary,
+:root[data-theme="dark"] .form-cancel,
+:root[data-theme="dark"] .confirm-cancel,
+:root[data-theme="dark"] .edit-record,
+:root[data-theme="dark"] .delete-record,
+:root[data-theme="dark"] .schedule-open,
+:root[data-theme="dark"] .theme-toggle {
+  color: var(--dark-text);
+  background: var(--dark-control);
+  border-color: var(--dark-border);
+}
+
+:root[data-theme="dark"] .filter-pill.selected,
+:root[data-theme="dark"] .finance-history-tabs button.chosen,
+:root[data-theme="dark"] .finance-add-button,
+:root[data-theme="dark"]
+  .expense-heading-actions
+  .finance-add-button:last-child,
+:root[data-theme="dark"] .form-submit,
+:root[data-theme="dark"] .setup-submit,
+:root[data-theme="dark"] .confirm-accept {
+  color: #d5e2f5;
+  background: #26374f;
+  border-color: #435a78;
+}
+
+:root[data-theme="dark"] .filter-pill.selected span,
+:root[data-theme="dark"] .finance-history-tabs button.chosen span {
+  color: #d5e2f5;
+}
+
+:root[data-theme="dark"] .bottom-nav button.active {
+  color: #d5e2f5;
+  background: #202a38;
+}
+
+:root[data-theme="dark"] .empty-record {
+  color: #aab4ac;
+  background: #101211;
+  border: 1px solid #303631;
+}
+
+:root[data-theme="dark"] .finance-history-tabs,
+:root[data-theme="dark"] .expense-filters button,
+:root[data-theme="dark"] .custom-range,
+:root[data-theme="dark"] .expense-import-format pre {
+  color: var(--dark-muted);
+  background: var(--dark-raised);
+  border-color: var(--dark-border);
+}
+
+:root[data-theme="dark"] .expense-filters button.chosen {
+  color: #d5e2f5;
+  background: #26374f;
+  border-color: #435a78;
+}
+
+:root[data-theme="dark"] .finance-history-tabs button {
+  color: #bdc8d8;
+}
+
+:root[data-theme="dark"] .finance-history-tabs button span {
+  color: #aebbd0;
+}
+
+:root[data-theme="dark"] .calendar-back,
+:root[data-theme="dark"] .import-trigger,
+:root[data-theme="dark"] .sample-download,
+:root[data-theme="dark"] .cow-name-link,
+:root[data-theme="dark"] .text-link,
+:root[data-theme="dark"] .all-schedules {
+  color: var(--dark-accent);
+}
+
+:root[data-theme="dark"] .delete-record:hover,
+:root[data-theme="dark"] .edit-record:hover,
+:root[data-theme="dark"] .round-action:hover,
+:root[data-theme="dark"] .schedule-open:hover {
+  color: #fff;
+  background: #263448;
+  border-color: #435b7c;
+}
+
+:root[data-theme="dark"] .btn-heat-again {
+  color: #ffb4b4;
+  background: #321b1d;
+  border-color: #684044;
+}
+
+:root[data-theme="dark"] .btn-heat-again:hover {
+  color: #ffe0e0;
+  background: #472326;
+  border-color: #8d4b52;
+}
+
+:root[data-theme="dark"] .schedule-group-heading {
+  color: var(--dark-text);
+  background: var(--dark-surface);
+  border-color: var(--dark-border);
+}
+
+:root[data-theme="dark"] .schedule-group-cow-icon,
+:root[data-theme="dark"] .schedule-open,
+:root[data-theme="dark"] .recommendation-icon,
+:root[data-theme="dark"] .profile-detail-icon,
+:root[data-theme="dark"] .confirm-modal-icon,
+:root[data-theme="dark"] .brand-mark,
+:root[data-theme="dark"] .setup-brand-mark,
+:root[data-theme="dark"] .summary-cow,
+:root[data-theme="dark"] .stat-icon,
+:root[data-theme="dark"] .schedule-icon,
+:root[data-theme="dark"] .expense-icon,
+:root[data-theme="dark"] .tip-icon,
+:root[data-theme="dark"] .cow-avatar,
+:root[data-theme="dark"] .status-pill {
+  color: #a8c6ff;
+  background: #202a38;
+}
+
+:root[data-theme="dark"] .cashflow-card.balance,
+:root[data-theme="dark"] .cashflow-card.available,
+:root[data-theme="dark"] .recommendation-note,
+:root[data-theme="dark"] .deworming-note,
+:root[data-theme="dark"] .repro-guidance {
+  color: #c3d2e9;
+  background: #151c26;
+  border-color: #2e3c50;
+}
+
+:root[data-theme="dark"] .heat-cycle summary::after,
+:root[data-theme="dark"] .heat-cycle summary strong,
+:root[data-theme="dark"] .heat-cycle-content,
+:root[data-theme="dark"] .heat-observation-list label {
+  color: var(--dark-muted);
+}
+
+:root[data-theme="dark"] .setup-form input::placeholder,
+:root[data-theme="dark"] input::placeholder {
+  color: #7f8981;
+}
