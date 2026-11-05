@@ -56,6 +56,7 @@ button,.brand,.welcome-row h1,.page-heading h1,.section-heading h2,.stat-value,.
 :root[data-theme='dark'] .cow-card,
 :root[data-theme='dark'] .expense-card,
 :root[data-theme='dark'] .record-form,
+:root[data-theme='dark'] .profile-info-card,
 :root[data-theme='dark'] .profile-detail-card,
 :root[data-theme='dark'] .backup-card,
 :root[data-theme='dark'] .repro-profile,
@@ -84,6 +85,7 @@ button,.brand,.welcome-row h1,.page-heading h1,.section-heading h2,.stat-value,.
 :root[data-theme='dark'] .profile-detail-card p,
 :root[data-theme='dark'] .schedule-group-count,
 :root[data-theme='dark'] .calendar-cow-info small { color: #9aa49c; }
+:root[data-theme='dark'] .profile-info-card .profile-detail-card + .profile-detail-card { border-color: #292e2a; }
 :root[data-theme='dark'] .record-form input,
 :root[data-theme='dark'] .record-form select,
 :root[data-theme='dark'] .setup-form input,
