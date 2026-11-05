@@ -115,30 +115,3 @@
     </p>{/if}
 </section>
 
-<section class="backup-card">
-  <div class="backup-copy">
-    <strong>Pindahkan data ke perangkat lain</strong>
-    <p>
-      Ekspor file cadangan, lalu impor di perangkat tujuan. Bisa dilakukan tanpa
-      internet.
-    </p>
-  </div>
-  <div class="backup-actions">
-    <button onclick={model.exportData}>
-      <Icon name={"download"} size={17} /> Ekspor data</button
-    >
-    <button class="secondary" onclick={() => model.backupFileInput?.click()}>
-      <Icon name={"upload"} size={17} /> Impor data</button
-    >
-    <input
-      bind:this={model.backupFileInput}
-      class="visually-hidden"
-      type="file"
-      accept="application/json,.json"
-      onchange={model.importData}
-    />
-  </div>
-  {#if model.backupMessage}<p class="backup-message" role="status">
-      {model.backupMessage}
-    </p>{/if}
-</section>

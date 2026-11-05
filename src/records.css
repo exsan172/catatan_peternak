@@ -44,6 +44,7 @@
 .optional-label{display:inline;color:#8996a9;font-size:inherit;font-weight:500}
 .cow-birth{margin-top:3px!important;color:#526b91!important}
 .backup-card{margin-top:14px;padding:16px;background:#fff;border:1px solid #e2e8f2;border-radius:14px}
+.profile-backup-card{box-sizing:border-box;width:100%;max-width:760px;margin-top:26px}
 .backup-copy strong{color:#31435e;font-size:14px}
 .backup-copy p{margin:5px 0 13px;color:#77869b;font-size:12px;line-height:1.5}
 .backup-actions{display:flex;flex-wrap:wrap;gap:9px}
